@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nestly — Your family, sorted</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14231F;
+  --ink-soft:#5B6B66;
+  --ink-faint:#93A29D;
+  --pine:#0E4F45;
+  --pine-tint:#E7F1EE;
+  --amber:#B45309;
+  --amber-bg:#FDF3E7;
+  --kidA:#2B6CB0;
+  --kidA-bg:#E8F0F9;
+  --kidB:#C05621;
+  --kidB-bg:#FBEEE6;
+  --surface:#FFFFFF;
+  --canvas:#F5F7F6;
+  --border:#E3E9E7;
+  --radius:14px;
+  --shadow:0 1px 3px rgba(20,35,31,.06),0 4px 14px rgba(20,35,31,.05);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--canvas);color:var(--ink);font-size:15px;line-height:1.5}
+h1,h2,h3,.brand{font-family:'Space Grotesk',sans-serif}
+
+/* ===== App shell ===== */
+.shell{display:flex;min-height:100vh;max-width:1200px;margin:0 auto}
+
+/* Sidebar (web only) */
+.sidebar{display:none;width:220px;flex-shrink:0;padding:28px 20px;border-right:1px solid var(--border);background:var(--surface)}
+.brand{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;color:var(--pine);margin-bottom:36px}
+.brand svg{flex-shrink:0}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;color:var(--ink-soft);font-weight:500;cursor:pointer;margin-bottom:4px;font-size:14.5px}
+.nav-item.active{background:var(--pine-tint);color:var(--pine);font-weight:600}
+.nav-item:hover:not(.active){background:var(--canvas)}
+
+/* Main column */
+.main{flex:1;padding:20px 18px 96px;max-width:640px;margin:0 auto;width:100%}
+
+/* Top bar (mobile) */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.topbar .brand{margin:0;font-size:20px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--pine);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+
+/* Screens */
+.screen{display:none}
+.screen.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.greeting{font-size:24px;font-weight:600;margin-bottom:2px}
+.subgreet{color:var(--ink-soft);font-size:14px;margin-bottom:20px}
+.subgreet strong{color:var(--pine)}
+
+/* Section labels */
+.sec-label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:22px 0 10px}
+
+/* Attention cards */
+.attn{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--amber);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.attn-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.attn-title{font-weight:600;font-size:15px}
+.due{font-size:12px;font-weight:600;color:var(--amber);background:var(--amber-bg);padding:3px 9px;border-radius:99px;white-space:nowrap}
+.attn-body{color:var(--ink-soft);font-size:13.5px;margin-top:4px}
+.prov{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-faint);margin-top:10px}
+.prov svg{flex-shrink:0}
+.attn-actions{display:flex;gap:8px;margin-top:12px}
+.btn{border:none;font-family:'Inter';font-size:13px;font-weight:600;padding:8px 14px;border-radius:9px;cursor:pointer}
+.btn-primary{background:var(--pine);color:#fff}
+.btn-ghost{background:var(--canvas);color:var(--ink-soft)}
+.btn:active{transform:scale(.97)}
+
+/* Kid chips */
+.kid{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px}
+.kid-a{color:var(--kidA);background:var(--kidA-bg)}
+.kid-b{color:var(--kidB);background:var(--kidB-bg)}
+.dot{width:7px;height:7px;border-radius:50%}
+.kid-a .dot{background:var(--kidA)}
+.kid-b .dot{background:var(--kidB)}
+
+/* Timeline */
+.tl-item{display:flex;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:9px}
+.tl-time{font-family:'Space Grotesk';font-weight:600;font-size:14px;color:var(--pine);min-width:62px}
+.tl-title{font-weight:600;font-size:14.5px}
+.tl-sub{color:var(--ink-soft);font-size:13px;margin-top:1px}
+.tl-meta{margin-top:7px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+
+/* Week grid */
+.week-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.week-nav h2{font-size:18px}
+.week-nav .btn-ghost{padding:6px 12px}
+.day-block{margin-bottom:16px}
+.day-head{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.day-name{font-family:'Space Grotesk';font-weight:600;font-size:14px}
+.day-date{color:var(--ink-faint);font-size:12.5px}
+.today-pill{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--pine);background:var(--pine-tint);padding:2px 8px;border-radius:99px;text-transform:uppercase}
+.evt{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:10px 13px;margin-bottom:7px;font-size:14px}
+.evt-flag{border-left:4px solid var(--amber);background:var(--amber-bg)}
+.evt-bar{width:4px;height:26px;border-radius:2px;flex-shrink:0}
+.evt-time{color:var(--ink-soft);font-size:12.5px;margin-left:auto;white-space:nowrap}
+.empty-day{color:var(--ink-faint);font-size:13px;padding:6px 2px;font-style:italic}
+
+/* Digest */
+.digest-intro{background:var(--pine);color:#fff;border-radius:var(--radius);padding:18px;margin-bottom:18px}
+.digest-intro h2{font-size:17px;margin-bottom:6px}
+.digest-intro p{font-size:13.5px;opacity:.85}
+.digest-kid{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.digest-kid h3{font-size:15px;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.digest-kid ul{list-style:none}
+.digest-kid li{display:flex;gap:9px;font-size:13.5px;color:var(--ink-soft);padding:5px 0;align-items:flex-start}
+.digest-kid li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pine);flex-shrink:0;margin-top:7px}
+.digest-kid li.hot::before{background:var(--amber)}
+.digest-kid li strong{color:var(--ink)}
+
+/* Add screen */
+.add-tile{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:11px;cursor:pointer;box-shadow:var(--shadow)}
+.add-tile:hover{border-color:var(--pine)}
+.add-icon{width:44px;height:44px;border-radius:12px;background:var(--pine-tint);color:var(--pine);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.add-tile h3{font-size:15px}
+.add-tile p{font-size:13px;color:var(--ink-soft);margin-top:1px}
+.connected{background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius);padding:14px 16px;margin-top:20px}
+.connected h4{font-size:13px;color:var(--ink-faint);font-weight:600;margin-bottom:9px;text-transform:uppercase;letter-spacing:.06em}
+.src-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:14px}
+.src-ok{color:var(--pine);font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:5px}
+
+/* Conflict card */
+.conflict{background:var(--surface);border:1px solid var(--border);border-left:4px solid #7C3AED;border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.conflict .due{color:#7C3AED;background:#F1EAFD}
+.ai-suggest{background:var(--pine-tint);border-radius:10px;padding:11px 13px;margin-top:11px;font-size:13.5px;color:var(--ink)}
+.ai-suggest .ai-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--pine);margin-bottom:5px}
+
+/* Grocery / lists */
+.gro-item{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 14px;margin-bottom:7px;font-size:14px}
+.gro-check{width:20px;height:20px;border:2px solid var(--border);border-radius:6px;flex-shrink:0;cursor:pointer}
+.gro-item.done{opacity:.45}
+.gro-item.done .gro-check{background:var(--pine);border-color:var(--pine)}
+.gro-item.done span{text-decoration:line-through}
+.gro-why{margin-left:auto;font-size:11.5px;color:var(--ink-faint);text-align:right;white-space:nowrap}
+.gro-new{border-style:dashed;color:var(--ink-faint);cursor:pointer}
+.aisle{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:16px 0 7px}
+.snap-cta{display:flex;align-items:center;gap:13px;background:linear-gradient(135deg,#0E4F45,#1A6B5E);color:#fff;border-radius:var(--radius);padding:15px 16px;margin-bottom:18px;cursor:pointer}
+.snap-cta h3{font-size:14.5px}
+.snap-cta p{font-size:12.5px;opacity:.8;margin-top:1px}
+.snap-icon{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* Reminders */
+.rem-item{display:flex;gap:11px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin-bottom:7px;align-items:flex-start}
+.rem-time{font-family:'Space Grotesk';font-weight:600;font-size:12.5px;color:var(--pine);background:var(--pine-tint);padding:3px 9px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+.rem-title{font-weight:600;font-size:14px}
+.rem-sub{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+
+/* Balance / partner split */
+.balance{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.balance h3{font-size:15px;margin-bottom:12px}
+.bal-bar{display:flex;height:14px;border-radius:99px;overflow:hidden;margin-bottom:8px}
+.bal-a{background:var(--pine)}
+.bal-b{background:#7C9A93}
+.bal-legend{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft)}
+.bal-legend strong{color:var(--ink)}
+.owner{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--pine-tint);color:var(--pine)}
+.owner.o-b{background:#EDF2F1;color:#54736C}
+.task-row{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:11px 14px;margin-bottom:7px;font-size:14px}
+.task-row .gro-check{margin:0}
+.task-row.done{opacity:.45}
+.task-row.done span.t-name{text-decoration:line-through}
+.task-owner{margin-left:auto}
+
+/* Segmented control */
+.seg{display:flex;background:#EBEFEE;border-radius:12px;padding:4px;margin-bottom:16px;gap:2px}
+.seg button{flex:1;border:none;background:none;font-family:'Inter';font-size:13px;font-weight:600;color:var(--ink-soft);padding:8px 4px;border-radius:9px;cursor:pointer}
+.seg button.active{background:var(--surface);color:var(--pine);box-shadow:0 1px 3px rgba(20,35,31,.1)}
+.sub{display:none}
+.sub.active{display:block;animation:fade .2s ease}
+@media(min-width:900px){
+  .seg{display:none}
+  .lists-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start}
+  .sub{display:block!important}
+  .sub-title-web{display:block!important;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px}
+}
+.sub-title-web{display:none}
+
+/* Bottom tabs (mobile) */
+.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:10}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--ink-faint);cursor:pointer;padding:4px 14px;border:none;background:none;font-family:'Inter'}
+.tab.active{color:var(--pine)}
+.tab svg{stroke:currentColor}
+
+/* Web layout */
+@media(min-width:900px){
+  .sidebar{display:block}
+  .topbar{display:none}
+  .tabs{display:none}
+  .main{padding:36px 40px 60px;max-width:none}
+  .greeting{font-size:28px}
+  .web-cols{display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start}
+}
+@media(prefers-reduced-motion:reduce){.screen.active{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Sidebar: web only -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M4 15c0 5 4 8 9 8s9-3 9-8" stroke="#0E4F45" stroke-width="2.4" stroke-linecap="round"/><path d="M7 15c0-1 .5-4 6-4s6 3 6 4" stroke="#0E4F45" stroke-width="2.4" stroke-linecap="round"/><circle cx="13" cy="7" r="2.6" fill="#B45309"/></svg>
+      Nestly
+    </div>
+    <div class="nav-item active" data-nav="today" onclick="go('today',this)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      Today</div>
+    <div class="nav-item" data-nav="week" onclick="go('week',this)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+      Week</div>
+    <div class="nav-item" data-nav="digest" onclick="go('digest',this)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.6L20 10l-6.1 1.4L12 17l-1.9-5.6L4 10l6.1-1.4z"/></svg>
+      Digest</div>
+    <div class="nav-item" data-nav="lists" onclick="go('lists',this)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>
+      Lists</div>
+    <div class="nav-item" data-nav="add" onclick="go('add',this)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      Add</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- Mobile top bar -->
+    <div class="topbar">
+      <div class="brand">
+        <svg width="24" height="24" viewBox="0 0 26 26" fill="none"><path d="M4 15c0 5 4 8 9 8s9-3 9-8" stroke="#0E4F45" stroke-width="2.4" stroke-linecap="round"/><path d="M7 15c0-1 .5-4 6-4s6 3 6 4" stroke="#0E4F45" stroke-width="2.4" stroke-linecap="round"/><circle cx="13" cy="7" r="2.6" fill="#B45309"/></svg>
+        Nestly
+      </div>
+      <div class="avatar">L</div>
+    </div>
+
+    <!-- ============ TODAY ============ -->
+    <section class="screen active" id="scr-today">
+      <h1 class="greeting">Good morning, Lav</h1>
+      <p class="subgreet">Nestly read <strong>14 emails</strong> overnight. 3 things need you today.</p>
+
+      <div class="web-cols">
+      <div>
+      <p class="sec-label">Needs attention</p>
+
+      <div class="attn">
+        <div class="attn-head">
+          <span class="attn-title">Field trip permission slip</span>
+          <span class="due">Due tomorrow</span>
+        </div>
+        <p class="attn-body">Aarav's class visits the Naperville Nature Center Friday. Slip + $8 fee.</p>
+        <div class="tl-meta"><span class="kid kid-a"><span class="dot"></span>Aarav</span></div>
+        <div class="prov">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
+          From ParentVUE email · Tuesday
+        </div>
+        <div class="attn-actions">
+          <button class="btn btn-primary" onclick="handled(this)">Mark handled</button>
+          <button class="btn btn-ghost">View email</button>
+        </div>
+      </div>
+
+      <div class="attn">
+        <div class="attn-head">
+          <span class="attn-title">Birthday party — RSVP not sent</span>
+          <span class="due">Closes in 2 days</span>
+        </div>
+        <p class="attn-body">Mia's 7th birthday, Saturday 2 pm at Activate Naperville.</p>
+        <div class="tl-meta"><span class="kid kid-a"><span class="dot"></span>Aarav</span></div>
+        <div class="prov">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
+          From Evite email · Monday
+        </div>
+        <div class="attn-actions">
+          <button class="btn btn-primary" onclick="handled(this)">RSVP yes</button>
+          <button class="btn btn-ghost">Decline</button>
+        </div>
+      </div>
+
+      <div class="conflict">
+        <div class="attn-head">
+          <span class="attn-title">Schedule conflict — Saturday 2 pm</span>
+          <span class="due">Conflict</span>
+        </div>
+        <p class="attn-body">Mia's birthday party overlaps Aarav's makeup swim class (2:00–2:45 pm).</p>
+        <div class="tl-meta"><span class="kid kid-a"><span class="dot"></span>Aarav</span></div>
+        <div class="ai-suggest">
+          <span class="ai-tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3l1.9 5.6L20 10l-6.1 1.4L12 17l-1.9-5.6L4 10l6.1-1.4z"/></svg>
+            Nestly suggests
+          </span><br>
+          The swim center has an open makeup slot <strong>Sunday 10 am</strong>. Move swim there and keep the party — Sunday is otherwise free.
+        </div>
+        <div class="attn-actions">
+          <button class="btn btn-primary" onclick="handled(this)">Move swim to Sunday</button>
+          <button class="btn btn-ghost">Skip the party</button>
+        </div>
+      </div>
+
+      <div class="attn">
+        <div class="attn-head">
+          <span class="attn-title">Daycare closed Friday</span>
+          <span class="due">Plan care</span>
+        </div>
+        <p class="attn-body">Staff training day at Little Sprouts. Diya needs backup care Friday.</p>
+        <div class="tl-meta"><span class="kid kid-b"><span class="dot"></span>Diya</span></div>
+        <div class="prov">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
+          From Brightwheel email · yesterday
+        </div>
+        <div class="attn-actions">
+          <button class="btn btn-primary" onclick="handled(this)">Mark handled</button>
+          <button class="btn btn-ghost">Remind me tonight</button>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <p class="sec-label">Today · Wed, Jul 8</p>
+
+      <div class="tl-item">
+        <span class="tl-time">8:15a</span>
+        <div>
+          <p class="tl-title">School drop-off</p>
+          <p class="tl-sub">May Watts Elementary</p>
+          <div class="tl-meta"><span class="kid kid-a"><span class="dot"></span>Aarav</span></div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <span class="tl-time">4:00p</span>
+        <div>
+          <p class="tl-title">Swim class</p>
+          <p class="tl-sub">Bring goggles — last week's reminder from coach</p>
+          <div class="tl-meta"><span class="kid kid-a"><span class="dot"></span>Aarav</span></div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <span class="tl-time">5:30p</span>
+        <div>
+          <p class="tl-title">Daycare pickup</p>
+          <p class="tl-sub">Little Sprouts · Dad's turn today</p>
+          <div class="tl-meta"><span class="kid kid-b"><span class="dot"></span>Diya</span></div>
+        </div>
+      </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- ============ WEEK ============ -->
+    <section class="screen" id="scr-week">
+      <div class="week-nav">
+        <h2>This week</h2>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost">‹</button>
+          <button class="btn btn-ghost">›</button>
+        </div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-head"><span class="day-name">Wednesday</span><span class="day-date">Jul 8</span><span class="today-pill">Today</span></div>
+        <div class="evt"><span class="evt-bar" style="background:var(--kidA)"></span>Swim class<span class="evt-time">4:00 pm</span></div>
+        <div class="evt"><span class="evt-bar" style="background:var(--kidB)"></span>Daycare pickup — Dad<span class="evt-time">5:30 pm</span></div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-head"><span class="day-name">Thursday</span><span class="day-date">Jul 9</span></div>
+        <div class="evt evt-flag"><span class="evt-bar" style="background:var(--amber)"></span>Permission slip due<span class="evt-time">by 3 pm</span></div>
+        <div class="evt"><span class="evt-bar" style="background:var(--kidB)"></span>Art class<span class="evt-time">10:00 am</span></div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-head"><span class="day-name">Friday</span><span class="day-date">Jul 10</span></div>
+        <div class="evt evt-flag"><span class="evt-bar" style="background:var(--amber)"></span>Daycare closed — backup care<span class="evt-time">all day</span></div>
+        <div class="evt"><span class="evt-bar" style="background:var(--kidA)"></span>Field trip — Nature Center<span class="evt-time">9:30 am</span></div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-head"><span class="day-name">Saturday</span><span class="day-date">Jul 11</span></div>
+        <div class="evt"><span class="evt-bar" style="background:var(--kidA)"></span>Mia's birthday party · Activate<span class="evt-time">2:00 pm</span></div>
+      </div>
+
+      <div class="day-block">
+        <div class="day-head"><span class="day-name">Sunday</span><span class="day-date">Jul 12</span></div>
+        <p class="empty-day">Nothing scheduled — enjoy it</p>
+      </div>
+    </section>
+
+    <!-- ============ DIGEST ============ -->
+    <section class="screen" id="scr-digest">
+      <div class="digest-intro">
+        <h2>Your week, sorted</h2>
+        <p>Nestly read 41 emails and 2 uploads this week. Here's what actually matters, per kid.</p>
+      </div>
+
+      <div class="digest-kid">
+        <h3><span class="kid kid-a"><span class="dot"></span>Aarav · 2nd grade</h3>
+        <ul>
+          <li class="hot"><span><strong>Permission slip + $8</strong> due Thursday for Friday's Nature Center trip.</span></li>
+          <li class="hot"><span><strong>RSVP closing</strong> for Mia's party Saturday — not answered yet.</span></li>
+          <li><span>Class started <strong>fractions</strong> this week. Coach also asked swimmers to bring goggles.</span></li>
+          <li><span>Picture day is <strong>next Thursday</strong> — order forms went out.</span></li>
+        </ul>
+      </div>
+
+      <div class="digest-kid">
+        <h3><span class="kid kid-b"><span class="dot"></span>Diya · Little Sprouts</h3>
+        <ul>
+          <li class="hot"><span><strong>Daycare closed Friday</strong> — staff training. Backup care needed.</span></li>
+          <li><span>Napping better this week — <strong>avg 1h 40m</strong>, up from 1h 10m.</span></li>
+          <li><span>Reminder to restock <strong>diapers and a spare outfit</strong> at school.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ LISTS ============ -->
+    <section class="screen" id="scr-lists">
+      <h1 class="greeting" style="font-size:20px;margin-bottom:14px">Lists</h1>
+
+      <div class="seg">
+        <button class="active" onclick="sub('grocery',this)">Grocery</button>
+        <button onclick="sub('tasks',this)">Tasks</button>
+        <button onclick="sub('rem',this)">Reminders</button>
+      </div>
+
+      <div class="lists-cols">
+
+      <!-- Grocery -->
+      <div class="sub active" id="sub-grocery">
+        <p class="sub-title-web">Grocery</p>
+        <div class="snap-cta">
+          <div class="snap-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5-9 9"/></svg>
+          </div>
+          <div>
+            <h3>Snap your fridge or pantry</h3>
+            <p>Nestly spots what's low. Last scan: Sunday.</p>
+          </div>
+        </div>
+
+        <div class="ai-suggest" style="margin:0 0 14px">
+          <span class="ai-tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3l1.9 5.6L20 10l-6.1 1.4L12 17l-1.9-5.6L4 10l6.1-1.4z"/></svg>
+            From Sunday's fridge photo
+          </span><br>
+          Milk and yogurt nearly out, no fruit visible — added 3 items. Daycare asked for diapers, added that too.
+        </div>
+
+        <p class="aisle">Dairy</p>
+        <div class="gro-item" onclick="tick(this)"><span class="gro-check"></span><span>Whole milk, 1 gal</span><span class="gro-why">fridge photo</span></div>
+        <div class="gro-item" onclick="tick(this)"><span class="gro-check"></span><span>Kids yogurt tubes</span><span class="gro-why">fridge photo</span></div>
+
+        <p class="aisle">Produce</p>
+        <div class="gro-item" onclick="tick(this)"><span class="gro-check"></span><span>Bananas + apples</span><span class="gro-why">fridge photo</span></div>
+
+        <p class="aisle">Kids</p>
+        <div class="gro-item" onclick="tick(this)"><span class="gro-check"></span><span>Diapers, size 4</span><span class="gro-why">Brightwheel email</span></div>
+        <div class="gro-item" onclick="tick(this)"><span class="gro-check"></span><span>Goggles for swim</span><span class="gro-why">coach's note</span></div>
+
+        <p class="aisle">Added by family</p>
+        <div class="gro-item" onclick="tick(this)"><span class="gro-check"></span><span>Rice, 10 lb</span><span class="gro-why">added by Dad</span></div>
+        <div class="gro-item gro-new"><span style="font-size:17px;line-height:1">+</span><span>Add item…</span></div>
+      </div>
+
+      <!-- Tasks -->
+      <div class="sub" id="sub-tasks">
+        <p class="sub-title-web">Shared tasks</p>
+        <div class="balance">
+          <h3>Today's split</h3>
+          <div class="bal-bar">
+            <div class="bal-a" style="width:65%"></div>
+            <div class="bal-b" style="width:35%"></div>
+          </div>
+          <div class="bal-legend">
+            <span><strong>Lav</strong> · 65% — 5 of 8</span>
+            <span><strong>Pratik</strong> · 35% — 3 of 8</span>
+          </div>
+          <div class="ai-suggest" style="margin-top:12px">
+            <span class="ai-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3l1.9 5.6L20 10l-6.1 1.4L12 17l-1.9-5.6L4 10l6.1-1.4z"/></svg>
+              Nestly suggests
+            </span><br>
+            Lav has carried more 4 of the last 5 days and has a work demo Thursday. Pratik is free after 4 pm — moving <strong>swim drop-off</strong> and <strong>grocery run</strong> to him evens the week.
+            <div class="attn-actions" style="margin-top:10px">
+              <button class="btn btn-primary" onclick="rebalance(this)">Reassign to Pratik</button>
+              <button class="btn btn-ghost">Not now</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-row" onclick="tick(this)"><span class="gro-check"></span><span class="t-name">School drop-off</span><span class="owner task-owner">Lav</span></div>
+        <div class="task-row" onclick="tick(this)"><span class="gro-check"></span><span class="t-name">Swim drop-off, 4 pm</span><span class="owner task-owner" data-swap>Lav</span></div>
+        <div class="task-row" onclick="tick(this)"><span class="gro-check"></span><span class="t-name">Daycare pickup, 5:30</span><span class="owner o-b task-owner">Pratik</span></div>
+        <div class="task-row" onclick="tick(this)"><span class="gro-check"></span><span class="t-name">Grocery run</span><span class="owner task-owner" data-swap>Lav</span></div>
+        <div class="task-row" onclick="tick(this)"><span class="gro-check"></span><span class="t-name">Sign permission slip</span><span class="owner task-owner">Lav</span></div>
+        <div class="task-row" onclick="tick(this)"><span class="gro-check"></span><span class="t-name">Pack Diya's spare outfit</span><span class="owner o-b task-owner">Pratik</span></div>
+      </div>
+
+      <!-- Reminders -->
+      <div class="sub" id="sub-rem">
+        <p class="sub-title-web">Reminders</p>
+        <div class="rem-item">
+          <span class="rem-time">Tonight 8p</span>
+          <div><p class="rem-title">Sign the permission slip</p><p class="rem-sub">Put it in Aarav's backpack — due tomorrow 3 pm</p></div>
+        </div>
+        <div class="rem-item">
+          <span class="rem-time">Thu 6p</span>
+          <div><p class="rem-title">RSVP closes tomorrow</p><p class="rem-sub">Mia's party — still unanswered</p></div>
+        </div>
+        <div class="rem-item">
+          <span class="rem-time">Thu 9p</span>
+          <div><p class="rem-title">Arrange Friday backup care</p><p class="rem-sub">Daycare closed — ask grandma or swap WFH day</p></div>
+        </div>
+      </div>
+
+      </div>
+    </section>
+
+    <!-- ============ ADD ============ -->
+    <section class="screen" id="scr-add">
+      <h1 class="greeting" style="font-size:20px;margin-bottom:16px">Add to Nestly</h1>
+
+      <div class="add-tile">
+        <div class="add-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5-9 9"/></svg>
+        </div>
+        <div><h3>Snap a flyer or screenshot</h3><p>Party invites, school flyers, texted invites — Nestly reads them.</p></div>
+      </div>
+
+      <div class="add-tile">
+        <div class="add-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <div><h3>Upload a document</h3><p>Report cards, progress reports, schedules — PDF or photo.</p></div>
+      </div>
+
+      <div class="add-tile">
+        <div class="add-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2v4M7 2v4M3 9h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M12 13v5M9.5 15.5h5"/></svg>
+        </div>
+        <div><h3>Add a recurring activity</h3><p>Swim, dance, tutoring — set once, it stays on the calendar.</p></div>
+      </div>
+
+      <div class="connected">
+        <h4>Connected sources</h4>
+        <div class="src-row"><span>Gmail — school & daycare senders</span><span class="src-ok">● Watching</span></div>
+        <div class="src-row"><span>Google Calendar — family</span><span class="src-ok">● Syncing</span></div>
+        <div class="src-row"><span>Aarav — May Watts / ParentVUE</span><span class="src-ok">● Set up</span></div>
+        <div class="src-row"><span>Diya — Little Sprouts / Brightwheel</span><span class="src-ok">● Set up</span></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Bottom tabs: mobile -->
+<nav class="tabs">
+  <button class="tab active" data-nav="today" onclick="go('today',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 11l9-8 9 8v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    Today</button>
+  <button class="tab" data-nav="week" onclick="go('week',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+    Week</button>
+  <button class="tab" data-nav="digest" onclick="go('digest',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3l1.9 5.6L20 10l-6.1 1.4L12 17l-1.9-5.6L4 10l6.1-1.4z"/></svg>
+    Digest</button>
+  <button class="tab" data-nav="lists" onclick="go('lists',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>
+    Lists</button>
+  <button class="tab" data-nav="add" onclick="go('add',this)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+    Add</button>
+</nav>
+
+<script>
+function go(name, el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('scr-'+name).classList.add('active');
+  document.querySelectorAll('[data-nav]').forEach(n=>{
+    n.classList.toggle('active', n.dataset.nav===name);
+  });
+  window.scrollTo({top:0});
+}
+function sub(name, btn){
+  document.querySelectorAll('.sub').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sub-'+name).classList.add('active');
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function tick(item){
+  item.classList.toggle('done');
+}
+function rebalance(btn){
+  document.querySelectorAll('[data-swap]').forEach(o=>{
+    o.textContent='Pratik';
+    o.classList.add('o-b');
+  });
+  const box = btn.closest('.ai-suggest');
+  box.innerHTML='<span class="ai-tag">✓ Rebalanced</span><br>Swim drop-off and grocery run moved to Pratik. Today is now 40 / 60.';
+  document.querySelector('.bal-a').style.width='40%';
+  document.querySelector('.bal-b').style.width='60%';
+  document.querySelector('.bal-legend').innerHTML='<span><strong>Lav</strong> · 40% — 3 of 8 tasks</span><span><strong>Pratik</strong> · 60% — 5 of 8</span>';
+}
+function handled(btn){
+  const card = btn.closest('.attn');
+  card.style.transition='all .3s ease';
+  card.style.opacity='0';
+  card.style.transform='translateX(12px)';
+  setTimeout(()=>card.remove(),300);
+}
+</script>
+</body>
+</html>

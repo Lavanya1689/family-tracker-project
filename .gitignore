@@ -1,0 +1,18 @@
+# deps
+node_modules/
+
+# next
+.next/
+out/
+next-env.d.ts
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+credentials.json
+token.json
+
+# misc
+.DS_Store
+*.log

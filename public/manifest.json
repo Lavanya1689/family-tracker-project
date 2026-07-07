@@ -1,0 +1,17 @@
+{
+  "name": "Nestly",
+  "short_name": "Nestly",
+  "description": "AI-powered family organizer — needs-attention items and today's schedule.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F7F6",
+  "theme_color": "#0E4F45",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
