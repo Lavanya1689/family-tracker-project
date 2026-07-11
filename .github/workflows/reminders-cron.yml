@@ -1,0 +1,24 @@
+name: Reminders cron
+
+# Vercel's Hobby plan only allows daily cron jobs (see vercel.json, used for
+# Gmail/ICS sync where once-a-day is fine). Reminders need to fire close to
+# their actual time to be useful, so this repo's own free GitHub Actions
+# cron hits /api/cron/reminders every 15 minutes instead.
+#
+# Requires two repo secrets (Settings -> Secrets and variables -> Actions):
+#   NESTLY_URL    the deployed app's base URL, e.g. https://nestly.vercel.app
+#   CRON_SECRET   same value as the CRON_SECRET env var set in Vercel
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call reminders endpoint
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.NESTLY_URL }}/api/cron/reminders"

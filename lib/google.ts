@@ -11,18 +11,23 @@ function newOAuthClient() {
   );
 }
 
-export function getGoogleAuthUrl() {
+// `label` (e.g. "Harsha") rides through as OAuth `state` so the callback
+// knows which parent is authorizing without needing them logged into the
+// app first — there's no login system, so this is the only way to tag it.
+export function getGoogleAuthUrl(label?: string) {
   const client = newOAuthClient();
   return client.generateAuthUrl({
     access_type: "offline", // required to get a refresh_token
     prompt: "consent", // force a refresh_token even on repeat authorizations
     scope: SCOPES,
+    state: label ?? "",
   });
 }
 
-// Exchanges the OAuth callback code for tokens and persists the refresh
-// token so cron jobs can read Gmail without a user present.
-export async function handleGoogleCallback(code: string) {
+// Exchanges the OAuth callback code for tokens, identifies which Google
+// account this is via the Gmail profile, and upserts it into
+// google_accounts (keyed by email) so more than one inbox can be watched.
+export async function handleGoogleCallback(code: string, label?: string) {
   const client = newOAuthClient();
   const { tokens } = await client.getToken(code);
 
@@ -32,96 +37,239 @@ export async function handleGoogleCallback(code: string) {
     );
   }
 
+  client.setCredentials(tokens);
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const profile = await gmail.users.getProfile({ userId: "me" });
+  const email = profile.data.emailAddress;
+  if (!email) throw new Error("Could not read the Gmail account's email address");
+
   const db = supabaseAdmin();
-  const { error } = await db.from("oauth_tokens").upsert({
-    provider: "google",
-    refresh_token: tokens.refresh_token,
-    access_token: tokens.access_token,
-    access_token_expires_at: tokens.expiry_date
-      ? new Date(tokens.expiry_date).toISOString()
-      : null,
-    updated_at: new Date().toISOString(),
-  });
+  const { error } = await db.from("google_accounts").upsert(
+    {
+      email,
+      label: label && label.length > 0 ? label : email.split("@")[0],
+      refresh_token: tokens.refresh_token,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "email" }
+  );
   if (error) throw error;
+  return { email };
 }
 
-// Returns an OAuth2 client loaded with the stored refresh token, ready to
-// call the Gmail API. googleapis handles the access-token refresh itself.
-async function getAuthorizedClient() {
+interface GoogleAccount {
+  email: string;
+  label: string;
+  refresh_token: string;
+}
+
+async function getConnectedAccounts(): Promise<GoogleAccount[]> {
   const db = supabaseAdmin();
-  const { data, error } = await db
-    .from("oauth_tokens")
-    .select("refresh_token")
-    .eq("provider", "google")
-    .single();
+  const { data, error } = await db.from("google_accounts").select("email, label, refresh_token");
+  if (error) throw error;
+  return data ?? [];
+}
 
-  if (error || !data) {
-    throw new Error(
-      "Google not connected yet — visit /api/auth/google/start to authorize Gmail access"
-    );
-  }
-
+function getAuthorizedClient(refreshToken: string) {
   const client = newOAuthClient();
-  client.setCredentials({ refresh_token: data.refresh_token });
+  client.setCredentials({ refresh_token: refreshToken });
   return client;
 }
 
-export interface FetchedEmail {
-  gmailMessageId: string;
-  sender: string;
-  subject: string;
-  receivedAt: Date;
-  body: string; // plain-text body, used only in-memory for extraction — never stored
+// Runs `fn` over `items` with at most `limit` in flight at once — Gmail
+// reads are network-bound, so bounded concurrency cuts wall-clock time
+// substantially versus a sequential loop without risking rate limits.
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
-// Fetches messages from the last `days` days, restricted server-side to
-// WATCH_SENDERS via the Gmail search query (belt) and re-checked by the
-// caller against the allowlist (suspenders).
-export async function fetchRecentEmails(
-  watchSenders: string[],
-  days: number
-): Promise<FetchedEmail[]> {
-  if (watchSenders.length === 0) return [];
+export interface EmailCandidate {
+  gmailMessageId: string;
+  rfc822MessageId: string | null;
+  accountEmail: string;
+  accountLabel: string;
+  refreshToken: string;
+  sender: string;
+  subject: string;
+  snippet: string;
+  receivedAt: Date;
+  isBulkMail: boolean;
+}
 
-  const auth = await getAuthorizedClient();
-  const gmail = google.gmail({ version: "v1", auth });
+// Phase 1: cheap metadata-only pass (no message body) across every
+// connected account — enough to decide relevance (sender, subject,
+// snippet, List-Unsubscribe) without paying for a full-body fetch on
+// every message. `format: metadata` is a much smaller/faster response
+// than `format: full`, and this is the only phase that scales with total
+// inbox volume rather than with how much is actually actionable.
+export async function fetchCandidateEmails(days: number): Promise<EmailCandidate[]> {
+  const accounts = await getConnectedAccounts();
+  if (accounts.length === 0) return [];
 
-  const fromClause = watchSenders.map((s) => `from:${s}`).join(" OR ");
-  const query = `(${fromClause}) newer_than:${days}d`;
+  const results: EmailCandidate[] = [];
 
-  const list = await gmail.users.messages.list({
-    userId: "me",
-    q: query,
-    maxResults: 50,
-  });
+  for (const account of accounts) {
+    const auth = getAuthorizedClient(account.refresh_token);
+    const gmail = google.gmail({ version: "v1", auth });
 
-  const messages = list.data.messages ?? [];
-  const results: FetchedEmail[] = [];
-
-  for (const msg of messages) {
-    if (!msg.id) continue;
-    const full = await gmail.users.messages.get({
+    const list = await gmail.users.messages.list({
       userId: "me",
-      id: msg.id,
-      format: "full",
+      q: `in:inbox newer_than:${days}d`,
+      maxResults: 50,
     });
 
-    const headers = full.data.payload?.headers ?? [];
-    const sender = headers.find((h) => h.name === "From")?.value ?? "";
-    const subject = headers.find((h) => h.name === "Subject")?.value ?? "(no subject)";
-    const dateHeader = headers.find((h) => h.name === "Date")?.value;
-    const receivedAt = dateHeader ? new Date(dateHeader) : new Date();
+    const messages = (list.data.messages ?? []).filter((m) => m.id);
 
-    results.push({
-      gmailMessageId: msg.id,
-      sender,
-      subject,
-      receivedAt,
-      body: extractPlainText(full.data.payload),
+    const candidates = await mapWithConcurrency(messages, 10, async (msg) => {
+      const meta = await gmail.users.messages.get({
+        userId: "me",
+        id: msg.id!,
+        format: "metadata",
+        metadataHeaders: ["From", "Subject", "Date", "Message-ID", "List-Unsubscribe"],
+      });
+
+      const headers = meta.data.payload?.headers ?? [];
+      const sender = headers.find((h) => h.name === "From")?.value ?? "";
+      const subject = headers.find((h) => h.name === "Subject")?.value ?? "(no subject)";
+      const dateHeader = headers.find((h) => h.name === "Date")?.value;
+      const receivedAt = dateHeader ? new Date(dateHeader) : new Date();
+      // The RFC822 Message-ID header is assigned by the sending server and
+      // shared across every recipient's copy — unlike Gmail's own message
+      // id, which is mailbox-scoped — so it catches the same email landing
+      // in more than one connected account (e.g. both parents CC'd).
+      const rfc822MessageId = headers.find((h) => h.name === "Message-ID")?.value ?? null;
+      // List-Unsubscribe is near-universal on bulk/marketing mail and
+      // essentially never present on personal or school email — a much
+      // stronger "this is not actionable family mail" signal than any
+      // keyword, and it's checked before the keyword filter even runs.
+      const isBulkMail = headers.some((h) => h.name === "List-Unsubscribe");
+
+      const candidate: EmailCandidate = {
+        gmailMessageId: msg.id!,
+        rfc822MessageId,
+        accountEmail: account.email,
+        accountLabel: account.label,
+        refreshToken: account.refresh_token,
+        sender,
+        subject,
+        snippet: meta.data.snippet ?? "",
+        receivedAt,
+        isBulkMail,
+      };
+      return candidate;
     });
+
+    results.push(...candidates);
   }
 
   return results;
+}
+
+export interface EmailAttachment {
+  filename: string;
+  mimeType: string;
+  data: string; // standard base64 — what Gemini's inlineData part expects
+}
+
+export interface EmailContent {
+  body: string;
+  attachments: EmailAttachment[];
+}
+
+// Flyers/forms are routinely sent as attachments with no specifics in the
+// email body itself (see the martial-arts belt-testing case that motivated
+// this) — only PDFs and images are worth the multimodal Gemini call; other
+// types (docx, xlsx, ...) aren't reliably readable that way and are skipped.
+const ELIGIBLE_ATTACHMENT_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+]);
+// Bounds worst-case cost/latency of a single multimodal extraction call —
+// not a relevance filter, just a size/count safety cap.
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const MAX_ATTACHMENTS_PER_EMAIL = 3;
+
+interface AttachmentRef {
+  filename: string;
+  mimeType: string;
+  attachmentId: string;
+  size: number;
+}
+
+function listAttachmentRefs(payload: any, out: AttachmentRef[] = []): AttachmentRef[] {
+  if (!payload) return out;
+  if (payload.filename && payload.body?.attachmentId) {
+    out.push({
+      filename: payload.filename,
+      mimeType: payload.mimeType,
+      attachmentId: payload.body.attachmentId,
+      size: payload.body.size ?? 0,
+    });
+  }
+  if (payload.parts) {
+    for (const part of payload.parts) listAttachmentRefs(part, out);
+  }
+  return out;
+}
+
+// Phase 2: full-body + attachment fetch for exactly one message — only
+// called for candidates that already passed the watched-sender/keyword
+// filter, so the expensive part of the pipeline scales with what's
+// actually relevant, not with total inbox volume.
+export async function fetchEmailContent(
+  refreshToken: string,
+  gmailMessageId: string
+): Promise<EmailContent> {
+  const auth = getAuthorizedClient(refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+  const full = await gmail.users.messages.get({
+    userId: "me",
+    id: gmailMessageId,
+    format: "full",
+  });
+
+  const body = extractPlainText(full.data.payload);
+
+  const refs = listAttachmentRefs(full.data.payload)
+    .filter(
+      (r) =>
+        ELIGIBLE_ATTACHMENT_MIME_TYPES.has(r.mimeType) &&
+        r.size > 0 &&
+        r.size <= MAX_ATTACHMENT_BYTES
+    )
+    .slice(0, MAX_ATTACHMENTS_PER_EMAIL);
+
+  const attachments: EmailAttachment[] = [];
+  for (const ref of refs) {
+    const att = await gmail.users.messages.attachments.get({
+      userId: "me",
+      messageId: gmailMessageId,
+      id: ref.attachmentId,
+    });
+    if (!att.data.data) continue;
+    // Gmail returns attachment bytes as base64url; Gemini's inlineData part
+    // expects standard base64.
+    const standardBase64 = Buffer.from(att.data.data, "base64url").toString("base64");
+    attachments.push({ filename: ref.filename, mimeType: ref.mimeType, data: standardBase64 });
+  }
+
+  return { body, attachments };
 }
 
 function extractPlainText(payload: any): string {

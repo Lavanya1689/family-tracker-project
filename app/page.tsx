@@ -7,30 +7,28 @@ import { EnableNotifications } from "./components/EnableNotifications";
 export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
-  const { kids, needsAttention, todayEvents, emailsReadRecently } = await getTodayData();
+  const { kids, attentionEntries, todayEvents, emailsReadRecently } = await getTodayData();
   const kidById = (id: string | null) => kids.find((k) => k.id === id) ?? null;
 
+  const attentionCount = attentionEntries.reduce(
+    (n, e) => n + (e.kind === "single" ? 1 : e.group.items.length),
+    0
+  );
+
   return (
-    <main className="main">
-      <div className="topbar">
-        <div className="brand">
-          <svg width="24" height="24" viewBox="0 0 26 26" fill="none">
-            <path d="M4 15c0 5 4 8 9 8s9-3 9-8" stroke="#0E4F45" strokeWidth="2.4" strokeLinecap="round" />
-            <path d="M7 15c0-1 .5-4 6-4s6 3 6 4" stroke="#0E4F45" strokeWidth="2.4" strokeLinecap="round" />
-            <circle cx="13" cy="7" r="2.6" fill="#B45309" />
-          </svg>
-          Nestly
+    <>
+      <div className="page-head">
+        <div>
+          <h1 className="greeting">Good morning</h1>
         </div>
         <EnableNotifications />
       </div>
-
-      <h1 className="greeting">Good morning</h1>
       <p className="subgreet">
         Nestly read <strong>{emailsReadRecently}</strong> emails recently.{" "}
-        {needsAttention.length > 0 ? (
+        {attentionCount > 0 ? (
           <>
-            <strong>{needsAttention.length}</strong> thing{needsAttention.length === 1 ? "" : "s"} need
-            {needsAttention.length === 1 ? "s" : ""} you today.
+            <strong>{attentionCount}</strong> thing{attentionCount === 1 ? "" : "s"} need
+            {attentionCount === 1 ? "s" : ""} you today.
           </>
         ) : (
           "Nothing needs you right now."
@@ -40,12 +38,26 @@ export default async function TodayPage() {
       <div className="web-cols">
         <div>
           <p className="sec-label">Needs attention</p>
-          {needsAttention.length === 0 && (
+          {attentionEntries.length === 0 && (
             <p className="empty-day">You&apos;re all caught up.</p>
           )}
-          {needsAttention.map((item) => (
-            <AttentionCard key={item.id} item={item} kid={kidById(item.kid_id)} />
-          ))}
+          {attentionEntries.map((entry) =>
+            entry.kind === "single" ? (
+              <AttentionCard key={entry.item.id} item={entry.item} kid={kidById(entry.item.kid_id)} />
+            ) : (
+              <details className="attn-group" key={entry.group.items[0].id}>
+                <summary className="attn-group-summary">
+                  From: {entry.group.label}
+                  <span className="attn-group-count">{entry.group.items.length} items</span>
+                </summary>
+                <div className="attn-group-items">
+                  {entry.group.items.map((item) => (
+                    <AttentionCard key={item.id} item={item} kid={kidById(item.kid_id)} />
+                  ))}
+                </div>
+              </details>
+            )
+          )}
         </div>
 
         <div>
@@ -58,6 +70,6 @@ export default async function TodayPage() {
           ))}
         </div>
       </div>
-    </main>
+    </>
   );
 }

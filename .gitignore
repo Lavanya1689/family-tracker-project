@@ -5,6 +5,7 @@ node_modules/
 .next/
 out/
 next-env.d.ts
+tsconfig.tsbuildinfo
 
 # env / secrets
 .env
@@ -16,3 +17,4 @@ token.json
 # misc
 .DS_Store
 *.log
+.vercel

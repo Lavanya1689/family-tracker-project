@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
+import { NavShell } from "./components/NavShell";
 
 export const metadata: Metadata = {
   title: "Nestly — Your family, sorted",
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <div className="shell">{children}</div>
+        <div className="shell">
+          <NavShell>{children}</NavShell>
+        </div>
         <RegisterServiceWorker />
       </body>
     </html>

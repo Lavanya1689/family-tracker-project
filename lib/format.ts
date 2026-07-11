@@ -1,27 +1,46 @@
-export function formatDueLabel(dueAt: string | null, now: Date = new Date()): string {
-  if (!dueAt) return "Needs attention";
+import { dayDiffInTz, formatTimeInTz, formatDateInTz } from "./timezone";
 
-  const due = new Date(dueAt);
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round(
-    (startOfDay(due).getTime() - startOfDay(now).getTime()) / 86_400_000
-  );
+const KIND_FALLBACK_LABEL: Record<string, string> = {
+  event: "Upcoming",
+  deadline: "Needs attention",
+  action_item: "Action needed",
+};
+
+export function formatDueLabel(
+  dueAt: string | null,
+  kind: string = "action_item",
+  now: Date = new Date()
+): string {
+  if (!dueAt) return KIND_FALLBACK_LABEL[kind] ?? "Needs attention";
+
+  const diffDays = dayDiffInTz(new Date(dueAt), now);
 
   if (diffDays < 0) return "Past due";
   if (diffDays === 0) return "Due today";
   if (diffDays === 1) return "Due tomorrow";
   if (diffDays <= 7) return `Due in ${diffDays} days`;
-  return `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  return `Due ${formatDateInTz(dueAt)}`;
 }
 
 export function formatTime(dateTime: string): string {
-  const d = new Date(dateTime);
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  return time.replace(" AM", "a").replace(" PM", "p").replace(":00", "");
+  return formatTimeInTz(dateTime);
+}
+
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Plain "YYYY-MM-DD" dates (e.g. task due dates) have no time component, so
+// there's no timezone to convert — parsing through `new Date()` would read
+// it as UTC midnight and can roll it back a day once localized. Format the
+// string directly instead.
+export function formatPlainDate(isoDate: string): string {
+  const match = /^\d{4}-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!match) return isoDate;
+  const [, month, day] = match;
+  return `${MONTH_ABBR[Number(month) - 1]} ${Number(day)}`;
 }
 
 export function formatTodayLabel(now: Date = new Date()): string {
-  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
-  const date = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const weekday = formatDateInTz(now, undefined, { weekday: "short" });
+  const date = formatDateInTz(now);
   return `Today · ${weekday}, ${date}`;
 }

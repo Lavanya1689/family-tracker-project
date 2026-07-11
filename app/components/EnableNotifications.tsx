@@ -43,7 +43,7 @@ export function EnableNotifications() {
   if (status === "enabled") return null;
 
   return (
-    <button className="btn btn-ghost" onClick={enable} disabled={status === "enabling"}>
+    <button className="btn btn-ghost btn-outline" onClick={enable} disabled={status === "enabling"}>
       {status === "enabling" ? "Enabling…" : "Enable notifications"}
     </button>
   );

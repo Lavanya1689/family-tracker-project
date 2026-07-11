@@ -28,3 +28,11 @@ export function senderIsWatched(fromHeader: string, watchSenders: string[]): boo
   const from = fromHeader.toLowerCase();
   return watchSenders.some((domainOrAddress) => from.includes(domainOrAddress));
 }
+
+// Parent names for task assignment on the Lists screen — e.g. "Lav,Pratik".
+export function getParents(): string[] {
+  return (process.env.PARENTS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}

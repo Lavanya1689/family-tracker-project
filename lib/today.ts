@@ -1,9 +1,11 @@
 import { supabaseAdmin } from "./supabase";
+import { localMidnightUtc } from "./timezone";
+import { groupAttentionItems, type AttentionEntry } from "./attention-grouping";
 import type { Item, Kid } from "./types";
 
 export interface TodayData {
   kids: Kid[];
-  needsAttention: Item[];
+  attentionEntries: AttentionEntry[];
   todayEvents: Item[];
   emailsReadRecently: number;
 }
@@ -11,10 +13,8 @@ export interface TodayData {
 export async function getTodayData(): Promise<TodayData> {
   const db = supabaseAdmin();
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfTomorrow = new Date(startOfToday);
-  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const startOfToday = localMidnightUtc(0);
+  const startOfTomorrow = localMidnightUtc(1);
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [{ data: kids }, { data: needsAttention }, { data: todayEvents }, { count: emailsReadRecently }] =
@@ -38,9 +38,23 @@ export async function getTodayData(): Promise<TodayData> {
         .gte("processed_at", since24h.toISOString()),
     ]);
 
+  const attentionItems = (needsAttention ?? []) as Item[];
+
+  // Group labels use the source email's subject when available — a much
+  // better cluster header ("Belt Testing") than repeating the full
+  // provenance sentence on every group.
+  const messageIds = Array.from(
+    new Set(attentionItems.map((i) => i.gmail_message_id).filter((id): id is string => Boolean(id)))
+  );
+  const { data: messages } =
+    messageIds.length > 0
+      ? await db.from("gmail_messages").select("gmail_message_id, subject").in("gmail_message_id", messageIds)
+      : { data: [] };
+  const subjectByMessageId = new Map((messages ?? []).map((m) => [m.gmail_message_id, m.subject]));
+
   return {
     kids: (kids ?? []) as Kid[],
-    needsAttention: (needsAttention ?? []) as Item[],
+    attentionEntries: groupAttentionItems(attentionItems, subjectByMessageId),
     todayEvents: (todayEvents ?? []) as Item[],
     emailsReadRecently: emailsReadRecently ?? 0,
   };
