@@ -249,61 +249,6 @@ h3,
   margin: 22px 0 10px;
 }
 
-/* Week strip — a color-dot day-density row above the Today columns,
-   borrowed from how calendar apps like Fantastical give a week its own
-   visual rhythm instead of a plain "Today" label. */
-.week-strip {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  margin-bottom: 20px;
-}
-.week-day {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 4px 9px;
-  text-align: center;
-}
-.week-day.today {
-  background: var(--ink-solid);
-  border-color: var(--ink-solid);
-}
-.week-day .dow {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  color: var(--ink-faint);
-  text-transform: uppercase;
-}
-.week-day.today .dow {
-  color: rgba(255, 255, 255, 0.65);
-}
-.week-day .num {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 14px;
-  margin: 3px 0 6px;
-  color: var(--ink);
-}
-.week-day.today .num {
-  color: #fff;
-}
-.week-day .dots {
-  display: flex;
-  justify-content: center;
-  gap: 3px;
-  min-height: 6px;
-  flex-wrap: wrap;
-}
-.week-day .dots span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .attn {
   background: var(--surface);
   border: 1px solid var(--border);

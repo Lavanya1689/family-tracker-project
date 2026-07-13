@@ -194,3 +194,11 @@ feature spec. Do not build them yet, even partially.
   stacked-card grouping animation — all offered as options and explicitly
   not picked; follow-ups if wanted later. `nestly-prototype.html` is now
   stale (kept for history, not the design reference anymore).
+- 2026-07-13 (later still): Removed the week strip added earlier the same
+  day — user pointed out /schedule already has proper Day/Week/Month views
+  (app/schedule/page.tsx), so a second, weaker dots-only week preview on
+  Today was redundant, not additive, and had no legend or interactivity to
+  justify the space. Deleted app/components/WeekStrip.tsx and its CSS;
+  Today stays focused on needs-attention + today's events only. The rest
+  of the rebrand (colors, fonts, hero card, category/source badges)
+  stands.

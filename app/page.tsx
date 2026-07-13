@@ -1,10 +1,8 @@
 import { getTodayData } from "@/lib/today";
-import { getWeekData } from "@/lib/week";
 import { formatTodayLabel } from "@/lib/format";
 import { AttentionCard } from "./components/AttentionCard";
 import { TimelineItem } from "./components/TimelineItem";
 import { EnableNotifications } from "./components/EnableNotifications";
-import { WeekStrip } from "./components/WeekStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +23,7 @@ function EmptyBoard({ children }: { children: React.ReactNode }) {
 }
 
 export default async function TodayPage() {
-  const [{ kids, attentionEntries, todayEvents, emailsReadRecently }, week] = await Promise.all([
-    getTodayData(),
-    getWeekData(),
-  ]);
+  const { kids, attentionEntries, todayEvents, emailsReadRecently } = await getTodayData();
   const kidById = (id: string | null) => kids.find((k) => k.id === id) ?? null;
 
   const attentionCount = attentionEntries.reduce(
@@ -56,8 +51,6 @@ export default async function TodayPage() {
           "Nothing needs you right now."
         )}
       </p>
-
-      <WeekStrip week={week} />
 
       <div className="web-cols">
         <div>
