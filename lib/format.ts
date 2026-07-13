@@ -39,6 +39,20 @@ export function formatPlainDate(isoDate: string): string {
   return `${MONTH_ABBR[Number(month) - 1]} ${Number(day)}`;
 }
 
+// Used on the Settings status panel to show job freshness ("Gmail sync: 4
+// minutes ago") without pulling in a date library for one relative string.
+export function formatRelativeTime(iso: string | null, now: Date = new Date()): string {
+  if (!iso) return "Never";
+  const diffMs = now.getTime() - new Date(iso).getTime();
+  const diffMin = Math.round(diffMs / 60_000);
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+}
+
 export function formatTodayLabel(now: Date = new Date()): string {
   const weekday = formatDateInTz(now, undefined, { weekday: "short" });
   const date = formatDateInTz(now);

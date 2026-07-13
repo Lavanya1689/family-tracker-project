@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabase";
 import { parseIcsFeed } from "./ics";
 import { icsProvenance } from "./provenance";
+import { markLastRun } from "./settings";
 
 export interface IcsIngestResult {
   feedsProcessed: number;
@@ -51,5 +52,6 @@ export async function ingestIcsFeeds(): Promise<IcsIngestResult> {
     result.itemsUpserted += rows.length;
   }
 
+  await markLastRun("last_ics_sync_at");
   return result;
 }

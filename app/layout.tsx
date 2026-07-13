@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
 import { NavShell } from "./components/NavShell";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export const metadata: Metadata = {
   title: "Nestly — Your family, sorted",
@@ -9,7 +10,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/icon.svg",
-    apple: "/icons/icon.svg",
+    // iOS ignores SVG for the home-screen icon — must be PNG.
+    apple: "/icons/apple-touch-icon.png",
   },
 };
 
@@ -19,7 +21,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Middleware redirects any unauthenticated request to /login before it
+  // reaches this layout, so a missing user here means we're rendering the
+  // login page itself — skip the nav chrome for it rather than threading
+  // pathname through.
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html lang="en">
       <head>
@@ -31,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div className="shell">
-          <NavShell>{children}</NavShell>
+          {user ? <NavShell userEmail={user.email ?? ""}>{children}</NavShell> : children}
         </div>
         <RegisterServiceWorker />
       </body>

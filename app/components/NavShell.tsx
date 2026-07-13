@@ -57,7 +57,26 @@ function Brand() {
   );
 }
 
-export function NavShell({ children }: { children: React.ReactNode }) {
+function SignOut({ userEmail }: { userEmail: string }) {
+  return (
+    <form action="/auth/signout" method="POST" className="nav-signout">
+      <span className="nav-signout-email" title={userEmail}>
+        {userEmail}
+      </span>
+      <button type="submit" className="nav-signout-btn">
+        Sign out
+      </button>
+    </form>
+  );
+}
+
+export function NavShell({
+  children,
+  userEmail,
+}: {
+  children: React.ReactNode;
+  userEmail: string;
+}) {
   const pathname = usePathname();
 
   return (
@@ -74,6 +93,8 @@ export function NavShell({ children }: { children: React.ReactNode }) {
             {item.label}
           </Link>
         ))}
+        <div style={{ flex: 1 }} />
+        <SignOut userEmail={userEmail} />
       </aside>
 
       <main className="main">

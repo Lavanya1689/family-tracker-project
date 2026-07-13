@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
 import { localToUtcIso } from "@/lib/timezone";
+import { sendPushToAll } from "@/lib/push";
 
 // Moves an item from "needs attention" onto the calendar: status becomes
 // "scheduled" (same status ICS-sourced events already use), which both
@@ -226,6 +227,18 @@ export async function deleteReminder(formData: FormData) {
   const { error } = await db.from("reminders").delete().eq("id", id);
   if (error) throw error;
   revalidatePath("/lists");
+}
+
+// Sends a push immediately, bypassing the reminders/sync schedule — lets you
+// verify the whole pipeline (VAPID keys, subscription, service worker, OS
+// permission) on demand instead of waiting on a real reminder and guessing
+// why it didn't show up.
+export async function sendTestNotification() {
+  await sendPushToAll({
+    title: "Nestly test notification",
+    body: "If you see this, push is working.",
+    url: "/settings",
+  });
 }
 
 export async function updateGeminiInstructions(formData: FormData) {

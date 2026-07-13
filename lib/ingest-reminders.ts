@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "./supabase";
 import { sendPushToAll } from "./push";
+import { markLastRun } from "./settings";
 
 export interface ReminderIngestResult {
   remindersDue: number;
@@ -44,5 +45,6 @@ export async function ingestReminders(): Promise<ReminderIngestResult> {
     }
   }
 
+  await markLastRun("last_reminders_run_at");
   return result;
 }

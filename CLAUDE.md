@@ -136,4 +136,24 @@ feature spec. Do not build them yet, even partially.
   tier because $99/yr only pencils out against revenue — that tension
   wasn't re-litigated, just deferred to whoever decides to actually pay
   for and submit the app.
-  ##
+- 2026-07-13: Replaced HTTP Basic Auth with Supabase Auth (Google sign-in,
+  email-allowlisted via ALLOWED_EMAILS) as the login system. Reasoning:
+  Basic Auth's browser-native 401 dialog has no UI in a standalone iOS PWA,
+  so re-authentication forced a delete-and-reinstall cycle that also dropped
+  the push subscription each time — a real /login page sidesteps that
+  entirely since it's just a page, not a browser challenge. Also matches how
+  actual family apps (Cozi, FamilyWall) work: real per-person sign-in
+  against one shared household, not a shared password. Reuses the existing
+  Gmail OAuth client (GOOGLE_CLIENT_ID/SECRET) for the Google provider in
+  Supabase rather than creating a second one — just needed Supabase's
+  callback URL added to that client's Authorized redirect URIs. Still a
+  single-household app (no per-user data, no RLS) — the allowlist is purely
+  a gate on who can sign in, not a permissions model. BASIC_AUTH_USER/PASS
+  retired. Also added PNG PWA icons (previously SVG-only, which iOS ignores
+  for the home-screen icon) and a Settings-page status panel (push
+  subscription count, last sync/reminder-run timestamps, a "send test
+  notification" button) so push delivery can be verified on demand instead
+  of debugged blind. Setup/onboarding UI (kids/senders/ICS feeds currently
+  still via .env + SQL) and general UI polish (optimistic updates, less
+  "static" feel) were explicitly scoped out of this pass — deferred to a
+  follow-up once the login+push loop is confirmed working end-to-end.

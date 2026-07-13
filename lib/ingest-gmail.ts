@@ -5,7 +5,7 @@ import { getWatchSenders, getKidsConfig, senderIsWatched } from "./env";
 import { gmailProvenance } from "./provenance";
 import { localToUtcIso } from "./timezone";
 import { sendPushToAll } from "./push";
-import { getGeminiCustomInstructions } from "./settings";
+import { getGeminiCustomInstructions, markLastRun } from "./settings";
 
 // Gemini is instructed to return naive local wall-clock strings (no
 // timezone suffix) — convert them to the correct UTC instant for the
@@ -199,5 +199,6 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
     }
   }
 
+  await markLastRun("last_gmail_sync_at");
   return result;
 }

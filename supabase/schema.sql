@@ -229,6 +229,14 @@ create table if not exists app_settings (
   updated_at timestamptz not null default now()
 );
 
+-- Last-run timestamps for the three background jobs, surfaced on the
+-- Settings page so "did my reminder not fire because the cron isn't
+-- running, or because push itself is broken?" has a real answer instead of
+-- guessing blind.
+alter table app_settings add column if not exists last_gmail_sync_at timestamptz;
+alter table app_settings add column if not exists last_ics_sync_at timestamptz;
+alter table app_settings add column if not exists last_reminders_run_at timestamptz;
+
 insert into app_settings (id) values (true)
 on conflict (id) do nothing;
 
