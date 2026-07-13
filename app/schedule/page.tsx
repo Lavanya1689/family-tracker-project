@@ -22,7 +22,7 @@ function toDateParam(date: Date): string {
 }
 
 function eventBarColor(item: Item, kidColorKey: "a" | "b" | null): string {
-  if (item.kind !== "event") return "var(--amber)";
+  if (item.kind !== "event") return "var(--urgent)";
   if (kidColorKey === "a") return "var(--kidA)";
   if (kidColorKey === "b") return "var(--kidB)";
   return "var(--ink-faint)";

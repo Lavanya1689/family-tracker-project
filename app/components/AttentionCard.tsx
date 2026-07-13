@@ -1,19 +1,50 @@
 import type { Item, Kid } from "@/lib/types";
 import { formatDueLabel } from "@/lib/format";
 import { KidChip } from "./KidChip";
+import { CategoryIcon } from "@/lib/category-icon";
 import { addToCalendar, ignoreItem, markDone } from "../actions";
+
+function SourceIcon({ sourceType }: { sourceType: Item["source_type"] }) {
+  if (sourceType === "ics") {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="4" width="18" height="17" rx="2" />
+        <path d="M3 9h18M8 2v4M16 2v4" />
+      </svg>
+    );
+  }
+  if (sourceType === "manual") {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 4h16v16H4z" />
+      <path d="M4 7l8 6 8-6" />
+    </svg>
+  );
+}
 
 export function AttentionCard({
   item,
   kid,
+  isHero = false,
 }: {
   item: Item;
   kid: Pick<Kid, "name" | "color_key"> | null;
+  isHero?: boolean;
 }) {
   return (
-    <div className="attn">
+    <div className={`attn${isHero ? " hero" : ""}`}>
       <div className="attn-head">
-        <span className="attn-title">{item.title}</span>
+        <div className="attn-title-row">
+          <CategoryIcon category={item.category} />
+          <span className="attn-title">{item.title}</span>
+        </div>
         <span className="due">{formatDueLabel(item.due_at, item.kind)}</span>
       </div>
       {item.description && <p className="attn-body">{item.description}</p>}
@@ -21,10 +52,7 @@ export function AttentionCard({
         <KidChip kid={kid} />
       </div>
       <div className="prov">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M4 4h16v16H4z" />
-          <path d="M4 7l8 6 8-6" />
-        </svg>
+        <SourceIcon sourceType={item.source_type} />
         {item.provenance_label}
       </div>
       <div className="attn-actions">

@@ -48,9 +48,9 @@ function Brand() {
   return (
     <div className="brand">
       <svg width="24" height="24" viewBox="0 0 26 26" fill="none">
-        <path d="M4 15c0 5 4 8 9 8s9-3 9-8" stroke="#0E4F45" strokeWidth="2.4" strokeLinecap="round" />
-        <path d="M7 15c0-1 .5-4 6-4s6 3 6 4" stroke="#0E4F45" strokeWidth="2.4" strokeLinecap="round" />
-        <circle cx="13" cy="7" r="2.6" fill="#B45309" />
+        <path d="M4 15c0 5 4 8 9 8s9-3 9-8" stroke="var(--ink)" strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M7 15c0-1 .5-4 6-4s6 3 6 4" stroke="var(--brand)" strokeWidth="2.4" strokeLinecap="round" />
+        <circle cx="13" cy="7" r="2.6" fill="var(--urgent)" />
       </svg>
       Nestly
     </div>

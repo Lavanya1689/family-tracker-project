@@ -1,8 +1,28 @@
 import type { Metadata, Viewport } from "next";
+import { Bricolage_Grotesque, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
 import { NavShell } from "./components/NavShell";
 import { supabaseServer } from "@/lib/supabase-server";
+
+const fontHeading = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["700", "800"],
+  variable: "--font-heading",
+  display: "swap",
+});
+const fontBody = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+  display: "swap",
+});
+const fontMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Nestly — Your family, sorted",
@@ -16,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0E4F45",
+  themeColor: "#1E2B3C",
   width: "device-width",
   initialScale: 1,
 };
@@ -32,14 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } = await supabase.auth.getUser();
 
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${fontHeading.variable} ${fontBody.variable} ${fontMono.variable}`}>
       <body>
         <div className="shell">
           {user ? <NavShell userEmail={user.email ?? ""}>{children}</NavShell> : children}

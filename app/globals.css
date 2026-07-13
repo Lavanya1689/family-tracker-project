@@ -1,26 +1,28 @@
 /* Dark is the default look; light is an override for users whose system
-   prefers it (see the @media block below). --pine-solid stays a fixed
-   deep green in both themes — it's for solid button fills that need
-   white text on top, which the theme-varying --pine accent isn't dark
+   prefers it (see the @media block below). --ink-solid stays a fixed
+   deep navy in both themes — it's for solid button fills that need
+   white text on top, which the theme-varying --ink accent isn't dark
    enough for once brightened for dark-mode text/icon contrast. */
 :root {
-  --ink: #e8f2ee;
-  --ink-soft: #9fb3ac;
-  --ink-faint: #647871;
-  --pine: #35c99b;
-  --pine-solid: #14614f;
-  --pine-tint: #14261f;
-  --pine-soft: #3e6f62;
-  --amber: #f3a661;
-  --amber-bg: #3a2712;
-  --kidA: #7bb3e8;
-  --kidA-bg: #17232e;
-  --kidB: #e5905f;
-  --kidB-bg: #2e2015;
-  --surface: #17211d;
-  --canvas: #0e1512;
-  --border: #263630;
-  --seg-bg: #1c2925;
+  --ink: #f0ece0;
+  --ink-soft: #c2c6ce;
+  --ink-faint: #838a96;
+  --ink-solid: #2e4258;
+  --brand: #e5b462;
+  --brand-tint: #3a3020;
+  --brand-soft: #a8925f;
+  --urgent: #ff8259;
+  --urgent-bg: #3a2620;
+  --scheduled: #7fbba3;
+  --scheduled-tint: #1e2e28;
+  --kidA: #8fb2da;
+  --kidA-bg: #22303f;
+  --kidB: #d598b4;
+  --kidB-bg: #34232c;
+  --surface: #262b34;
+  --canvas: #1c2027;
+  --border: #383e4a;
+  --seg-bg: #232830;
   --owner-b-bg: #2b2119;
   --owner-b-ink: #cb9f76;
   --radius: 14px;
@@ -29,26 +31,28 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --ink: #14231f;
-    --ink-soft: #5b6b66;
-    --ink-faint: #93a29d;
-    --pine: #0e4f45;
-    --pine-solid: #0e4f45;
-    --pine-tint: #e7f1ee;
-    --pine-soft: #7c9a93;
-    --amber: #b45309;
-    --amber-bg: #fdf3e7;
-    --kidA: #2b6cb0;
-    --kidA-bg: #e8f0f9;
-    --kidB: #c05621;
-    --kidB-bg: #fbeee6;
-    --surface: #ffffff;
-    --canvas: #f5f7f6;
-    --border: #e3e9e7;
-    --seg-bg: #ebefee;
+    --ink: #1e2b3c;
+    --ink-soft: #4b586b;
+    --ink-faint: #8792a0;
+    --ink-solid: #24344a;
+    --brand: #be8a2e;
+    --brand-tint: #f3e6c9;
+    --brand-soft: #8f7648;
+    --urgent: #d14e2e;
+    --urgent-bg: #fbe7df;
+    --scheduled: #3f6b5c;
+    --scheduled-tint: #e2ece6;
+    --kidA: #45688c;
+    --kidA-bg: #dee7f0;
+    --kidB: #8b5670;
+    --kidB-bg: #f1e1e9;
+    --surface: #fffffe;
+    --canvas: #f1efe6;
+    --border: #ddd9c8;
+    --seg-bg: #e7e4d6;
     --owner-b-bg: #edf2f1;
     --owner-b-ink: #54736c;
-    --shadow: 0 1px 3px rgba(20, 35, 31, 0.06), 0 4px 14px rgba(20, 35, 31, 0.05);
+    --shadow: 0 1px 3px rgba(30, 43, 60, 0.07), 0 4px 14px rgba(30, 43, 60, 0.06);
   }
 }
 * {
@@ -57,7 +61,7 @@
   box-sizing: border-box;
 }
 body {
-  font-family: "Inter", sans-serif;
+  font-family: var(--font-body), sans-serif;
   background: var(--canvas);
   color: var(--ink);
   font-size: 15px;
@@ -67,7 +71,7 @@ h1,
 h2,
 h3,
 .brand {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-heading), sans-serif;
 }
 
 .shell {
@@ -78,10 +82,26 @@ h3,
 }
 .main {
   flex: 1;
+  position: relative;
+  overflow: hidden;
   padding: 20px 18px 60px;
   max-width: 640px;
   margin: 0 auto;
   width: 100%;
+}
+/* Soft gradient wash behind the Today header — depth without a flat color
+   block, echoing the tinted brand/urgent/kidA hues used elsewhere. */
+.header-glow {
+  position: absolute;
+  top: -140px;
+  left: -60px;
+  right: -60px;
+  height: 300px;
+  background: radial-gradient(300px 200px at 12% 15%, color-mix(in srgb, var(--brand) 24%, transparent), transparent 70%),
+    radial-gradient(260px 180px at 55% -5%, color-mix(in srgb, var(--urgent) 16%, transparent), transparent 70%),
+    radial-gradient(280px 190px at 88% 25%, color-mix(in srgb, var(--kidA) 18%, transparent), transparent 70%);
+  pointer-events: none;
+  filter: blur(2px);
 }
 .topbar {
   display: flex;
@@ -96,7 +116,7 @@ h3,
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: var(--pine);
+  color: var(--brand);
 }
 
 /* Sidebar (web only) */
@@ -114,7 +134,7 @@ h3,
   gap: 10px;
   font-size: 22px;
   font-weight: 700;
-  color: var(--pine);
+  color: var(--brand);
   margin-bottom: 36px;
 }
 .nav-item {
@@ -131,8 +151,8 @@ h3,
   font-size: 14.5px;
 }
 .nav-item.active {
-  background: var(--pine-tint);
-  color: var(--pine);
+  background: var(--brand-tint);
+  color: var(--brand);
   font-weight: 600;
 }
 .nav-item:hover:not(.active) {
@@ -160,7 +180,7 @@ h3,
   padding: 0;
   font-size: 13px;
   font-weight: 500;
-  color: var(--pine);
+  color: var(--brand);
   cursor: pointer;
 }
 .nav-signout-btn:hover {
@@ -193,10 +213,10 @@ h3,
   padding: 4px 14px;
   border: none;
   background: none;
-  font-family: "Inter";
+  font-family: var(--font-body);
 }
 .tab.active {
-  color: var(--pine);
+  color: var(--brand);
 }
 
 .page-head {
@@ -217,7 +237,7 @@ h3,
   margin-bottom: 20px;
 }
 .subgreet strong {
-  color: var(--pine);
+  color: var(--brand);
 }
 
 .sec-label {
@@ -229,10 +249,65 @@ h3,
   margin: 22px 0 10px;
 }
 
+/* Week strip — a color-dot day-density row above the Today columns,
+   borrowed from how calendar apps like Fantastical give a week its own
+   visual rhythm instead of a plain "Today" label. */
+.week-strip {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.week-day {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 4px 9px;
+  text-align: center;
+}
+.week-day.today {
+  background: var(--ink-solid);
+  border-color: var(--ink-solid);
+}
+.week-day .dow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.week-day.today .dow {
+  color: rgba(255, 255, 255, 0.65);
+}
+.week-day .num {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  margin: 3px 0 6px;
+  color: var(--ink);
+}
+.week-day.today .num {
+  color: #fff;
+}
+.week-day .dots {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  min-height: 6px;
+  flex-wrap: wrap;
+}
+.week-day .dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .attn {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--amber);
+  border-left: 4px solid var(--urgent);
   border-radius: var(--radius);
   padding: 14px 16px;
   margin-bottom: 10px;
@@ -244,15 +319,90 @@ h3,
   align-items: flex-start;
   gap: 8px;
 }
+.attn-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
 .attn-title {
   font-weight: 600;
   font-size: 15px;
 }
+.cat-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  background: var(--brand-tint);
+  color: var(--brand);
+}
+.cat-icon svg {
+  width: 12.5px;
+  height: 12.5px;
+}
+.cat-icon.school {
+  background: var(--kidA-bg);
+  color: var(--kidA);
+}
+.cat-icon.activity {
+  background: var(--scheduled-tint);
+  color: var(--scheduled);
+}
+
+/* Hero treatment for the single most urgent item — a solid gradient block
+   instead of a flat card, borrowed from how Fantastical treats your next
+   event, so it's not just first in the list but visually unmissable. */
+.attn.hero {
+  border-left: none;
+  background: linear-gradient(135deg, var(--urgent), color-mix(in srgb, var(--urgent) 65%, var(--brand)));
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.attn.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(180px 140px at 90% -10%, rgba(255, 255, 255, 0.25), transparent 70%);
+  pointer-events: none;
+}
+.attn.hero .attn-title,
+.attn.hero .attn-body {
+  color: #fff;
+  position: relative;
+}
+.attn.hero .due {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.attn.hero .prov {
+  color: rgba(255, 255, 255, 0.78);
+  position: relative;
+}
+.attn.hero .cat-icon {
+  background: rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+.attn.hero .btn-primary {
+  background: #fff;
+  color: var(--urgent);
+}
+.attn.hero .btn-ghost {
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
+}
 .due {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--amber);
-  background: var(--amber-bg);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--urgent);
+  background: var(--urgent-bg);
   padding: 3px 9px;
   border-radius: 99px;
   white-space: nowrap;
@@ -290,7 +440,7 @@ h3,
   cursor: pointer;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--pine);
+  border-left: 4px solid var(--brand);
   border-radius: var(--radius);
   padding: 12px 16px;
   font-weight: 600;
@@ -314,10 +464,12 @@ h3,
 }
 .attn-group-count {
   margin-left: auto;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--pine);
-  background: var(--pine-tint);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--brand);
+  background: var(--brand-tint);
   padding: 2px 9px;
   border-radius: 99px;
   white-space: nowrap;
@@ -330,7 +482,7 @@ h3,
   align-items: center;
   gap: 6px;
   border: none;
-  font-family: "Inter";
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   padding: 8px 14px;
@@ -342,7 +494,7 @@ h3,
   flex-shrink: 0;
 }
 .btn-primary {
-  background: var(--pine-solid);
+  background: var(--ink-solid);
   color: #fff;
 }
 .btn-ghost {
@@ -397,10 +549,11 @@ h3,
   margin-bottom: 9px;
 }
 .tl-time {
-  font-family: "Space Grotesk";
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--pine);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--brand);
   min-width: 62px;
 }
 .tl-title {
@@ -419,11 +572,36 @@ h3,
   align-items: center;
   flex-wrap: wrap;
 }
+.tl-meta svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
 .empty-day {
   color: var(--ink-faint);
   font-size: 13px;
   padding: 6px 2px;
   font-style: italic;
+}
+.empty-card {
+  margin-top: 4px;
+  background: linear-gradient(160deg, var(--seg-bg), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.empty-card svg {
+  flex-shrink: 0;
+}
+.empty-card p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* Week view */
@@ -446,7 +624,7 @@ h3,
   margin-bottom: 8px;
 }
 .day-name {
-  font-family: "Space Grotesk";
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 14px;
 }
@@ -458,8 +636,8 @@ h3,
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--pine);
-  background: var(--pine-tint);
+  color: var(--brand);
+  background: var(--brand-tint);
   padding: 2px 8px;
   border-radius: 99px;
   text-transform: uppercase;
@@ -476,8 +654,8 @@ h3,
   font-size: 14px;
 }
 .evt-flag {
-  border-left: 4px solid var(--amber);
-  background: var(--amber-bg);
+  border-left: 4px solid var(--urgent);
+  background: var(--urgent-bg);
 }
 .evt-bar {
   width: 4px;
@@ -497,7 +675,7 @@ h3,
   color: var(--ink);
   border-radius: 9px;
   padding: 7px 10px;
-  font-family: "Inter";
+  font-family: var(--font-body);
   font-size: 13px;
   color-scheme: dark;
 }
@@ -514,14 +692,14 @@ h3,
   color: var(--ink);
   border-radius: 11px;
   padding: 12px 14px;
-  font-family: "Inter";
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.5;
   resize: vertical;
   margin-bottom: 12px;
 }
 .settings-textarea:focus {
-  outline: 2px solid var(--pine);
+  outline: 2px solid var(--brand);
   outline-offset: 1px;
 }
 
@@ -545,13 +723,13 @@ h3,
 }
 .view-switch a.active {
   background: var(--surface);
-  color: var(--pine);
+  color: var(--brand);
   box-shadow: 0 1px 3px rgba(20, 35, 31, 0.1);
 }
 
 /* Month grid */
 .month-title {
-  font-family: "Space Grotesk";
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 16px;
   margin-bottom: 12px;
@@ -588,18 +766,18 @@ h3,
   opacity: 0.4;
 }
 .month-cell.today {
-  border-color: var(--pine);
+  border-color: var(--brand);
   border-width: 2px;
 }
 .month-day-number {
-  font-family: "Space Grotesk";
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 12.5px;
   margin-bottom: 2px;
 }
 .month-event {
-  background: var(--pine-tint);
-  color: var(--pine);
+  background: var(--brand-tint);
+  color: var(--brand);
   border-radius: 4px;
   padding: 1px 4px;
   white-space: nowrap;
@@ -637,7 +815,7 @@ h3,
   text-align: center;
   border: none;
   background: none;
-  font-family: "Inter";
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -662,7 +840,7 @@ h3,
    elsewhere doesn't scale here. See app/components/ListsTabs.tsx. */
 .seg button.active {
   background: var(--surface);
-  color: var(--pine);
+  color: var(--brand);
   box-shadow: 0 1px 3px rgba(20, 35, 31, 0.1);
 }
 
@@ -691,8 +869,8 @@ h3,
   opacity: 0.45;
 }
 .gro-item.done .gro-check {
-  background: var(--pine);
-  border-color: var(--pine);
+  background: var(--brand);
+  border-color: var(--brand);
 }
 .gro-item.done span {
   text-decoration: line-through;
@@ -712,7 +890,7 @@ h3,
 .gro-new select {
   border: none;
   background: none;
-  font-family: "Inter";
+  font-family: var(--font-body);
   font-size: 14px;
   color: var(--ink);
   flex: 1;
@@ -742,7 +920,7 @@ h3,
   background: var(--canvas);
   border-radius: 8px;
   padding: 8px 10px;
-  font-family: "Inter";
+  font-family: var(--font-body);
   font-size: 13px;
   color: var(--ink);
   outline: none;
@@ -803,8 +981,10 @@ button.task-row {
   flex-shrink: 0;
 }
 .due-badge {
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  font-weight: 500;
   padding: 2px 8px;
   border-radius: 99px;
   background: var(--seg-bg);
@@ -820,12 +1000,12 @@ button.task-row {
   text-transform: capitalize;
 }
 .priority-high {
-  background: var(--amber-bg);
-  color: var(--amber);
+  background: var(--urgent-bg);
+  color: var(--urgent);
 }
 .priority-medium {
-  background: var(--pine-tint);
-  color: var(--pine);
+  background: var(--brand-tint);
+  color: var(--brand);
 }
 .priority-low {
   background: var(--seg-bg);
@@ -839,8 +1019,8 @@ button.task-row {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 99px;
-  background: var(--pine-tint);
-  color: var(--pine);
+  background: var(--brand-tint);
+  color: var(--brand);
 }
 .owner.o-b {
   background: var(--owner-b-bg);
@@ -888,11 +1068,11 @@ button.task-row {
   align-items: flex-start;
 }
 .rem-time {
-  font-family: "Space Grotesk";
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 12.5px;
-  color: var(--pine);
-  background: var(--pine-tint);
+  color: var(--brand);
+  background: var(--brand-tint);
   padding: 3px 9px;
   border-radius: 99px;
   white-space: nowrap;
@@ -929,11 +1109,11 @@ button.task-row {
 }
 .list-section-icon {
   display: flex;
-  color: var(--pine);
+  color: var(--brand);
   flex-shrink: 0;
 }
 .list-section-title {
-  font-family: "Space Grotesk";
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;
   flex: 1;
@@ -958,7 +1138,7 @@ button.task-row {
   cursor: pointer;
 }
 .item-delete:hover {
-  color: var(--amber);
+  color: var(--urgent);
 }
 .new-list-form {
   display: flex;
@@ -971,7 +1151,7 @@ button.task-row {
   background: var(--surface);
   border-radius: 9px;
   padding: 9px 12px;
-  font-family: "Inter";
+  font-family: var(--font-body);
   font-size: 13px;
   color: var(--ink);
 }
@@ -986,7 +1166,7 @@ button.task-row {
   border-top: 1px solid var(--border);
 }
 .week-leader strong {
-  color: var(--pine);
+  color: var(--brand);
 }
 
 @media (min-width: 900px) {

@@ -15,9 +15,19 @@ side project, cost-sensitive — free tiers everywhere possible.
   added on top of, not instead of, the web app.
 
 ## Design reference
-- `nestly-prototype.html` in this repo is the approved UI direction. Match its look:
-  Space Grotesk headings, Inter body, pine green (#0E4F45) brand, amber (#B45309)
-  reserved exclusively for "needs attention," per-kid colors (blue/orange).
+- `nestly-prototype.html` is superseded by the 2026-07-13 redesign (see decisions
+  log) — kept in the repo for history, don't match its colors/type anymore.
+- Current direction: ink-navy (#1E2B3C light / #F0ECE0 dark) for structure,
+  marigold (#BE8A2E / #E5B462) as the one decorative brand accent, sticky-note
+  red (#D14E2E / #FF8259) reserved exclusively for "needs attention" (same rule
+  as before, just recolored from amber), moss green (#3F6B5C / #7FBBA3) for
+  scheduled/calendar indicators, dusty marker-pen per-kid colors (denim blue /
+  plum) instead of flat blue/orange. Bricolage Grotesque headings, IBM Plex Sans
+  body, IBM Plex Mono for timestamps/counts — loaded via `next/font/google` in
+  `app/layout.tsx`. All colors are CSS custom properties in `app/globals.css`
+  (`--ink`, `--brand`, `--urgent`, `--scheduled`, `--kidA`/`--kidB`, etc.) —
+  never hardcode a hex value in a component; both light and dark values already
+  exist for every token.
 - Signature UX rule: every AI-extracted item shows its provenance
   ("From Brightwheel email · Tuesday"). Never show an extracted item without its source.
 
@@ -157,3 +167,30 @@ feature spec. Do not build them yet, even partially.
   still via .env + SQL) and general UI polish (optimistic updates, less
   "static" feel) were explicitly scoped out of this pass — deferred to a
   follow-up once the login+push loop is confirmed working end-to-end.
+- 2026-07-13 (later same day): Rebranded off the original pine-green +
+  amber prototype — the built app read as flat and generic ("static", "UI
+  colour is not looking great"). Checked real references before designing:
+  Cozi (mentioned as inspiration) turned out to look dated in current
+  reviews, not a good target; pulled actual Fantastical App Store
+  screenshots (not just written descriptions) and borrowed concrete moves
+  from it — color-dot day density instead of a bare "Today" label, a solid
+  gradient block for the single most-urgent item instead of a flat row.
+  New direction: ink-navy structure, marigold brand accent, sticky-note red
+  still exclusively for needs-attention (recolored, same rule), moss green
+  for scheduled items, dusty marker-pen kid colors. Bricolage Grotesque /
+  IBM Plex Sans / IBM Plex Mono via next/font/google, replacing the old
+  Space Grotesk/Inter <link>-tag loading. Iterated live with the user via a
+  throwaway HTML mockup (Claude artifact) before touching any app code —
+  cheaper to react to than redeploying the real app each round. Landed on:
+  a week strip (color dots per kid per day, reusing lib/week.ts's existing
+  getWeekData(), no new backend logic), category + source icon badges on
+  needs-attention cards (lib/category-icon.tsx; envelope/calendar/pencil
+  icon by source_type), and the hero-card treatment. Scoped to the Today
+  view + the shared CSS token system (which also recolors Schedule/Lists
+  automatically, since they read the same --ink/--brand/--urgent/etc.
+  variables) — did NOT extend the new structural elements (week strip,
+  hero card, badges) to Schedule/Lists' own markup, and did NOT build
+  kid progress rings, a full empty-state illustration family, or
+  stacked-card grouping animation — all offered as options and explicitly
+  not picked; follow-ups if wanted later. `nestly-prototype.html` is now
+  stale (kept for history, not the design reference anymore).

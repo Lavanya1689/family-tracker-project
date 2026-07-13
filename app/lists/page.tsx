@@ -145,7 +145,7 @@ export default async function ListsPage() {
                     key={o.owner}
                     style={{
                       width: `${weekSummary.totalTasks > 0 ? (o.total / weekSummary.totalTasks) * 100 : 0}%`,
-                      background: i === 0 ? "var(--pine)" : "var(--pine-soft)",
+                      background: i === 0 ? "var(--brand)" : "var(--brand-soft)",
                     }}
                   />
                 ))}
@@ -277,7 +277,7 @@ export default async function ListsPage() {
                 className="rem-time"
                 style={
                   item.dismissal_reason === "done"
-                    ? { color: "var(--pine)", background: "var(--pine-tint)" }
+                    ? { color: "var(--brand)", background: "var(--brand-tint)" }
                     : { color: "var(--ink-faint)", background: "var(--seg-bg)" }
                 }
               >
