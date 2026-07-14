@@ -112,23 +112,31 @@ export default async function TodayPage() {
                       </button>
                     </form>
                     <a
-                      className="btn btn-info"
+                      className="btn btn-icon btn-info"
                       href={`https://mail.google.com/mail/u/0/#all/${entry.group.messageId}`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      title="View email"
                     >
-                      View email
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="M3 7l9 6 9-6" />
+                      </svg>
                     </a>
                     <form action={markGroupDone}>
                       <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
-                      <button className="btn btn-success" type="submit">
-                        Done
+                      <button className="btn btn-icon btn-success" type="submit" title="Done">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
                       </button>
                     </form>
                     <form action={ignoreGroup}>
                       <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
-                      <button className="btn btn-danger-outline" type="submit">
-                        Ignore
+                      <button className="btn btn-icon btn-danger-outline" type="submit" title="Ignore">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
                       </button>
                     </form>
                   </div>

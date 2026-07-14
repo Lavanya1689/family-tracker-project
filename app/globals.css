@@ -620,30 +620,45 @@ h3,
   background: var(--surface);
   color: var(--ink);
 }
+/* Tinted-pill style (background + matching text, no border) — reuses the
+   same visual language as the existing badges (.due, .attn-group-count,
+   .cat-icon) instead of loud solid-fill blocks, so a row of these plus
+   one primary button reads as one clear action + quiet secondary actions,
+   not four competing colors. */
 .btn-info {
-  background: var(--kidA);
-  color: #fff;
+  background: var(--kidA-bg);
+  color: var(--kidA);
 }
 .btn-success {
-  background: var(--scheduled);
-  color: #fff;
+  background: var(--scheduled-tint);
+  color: var(--scheduled);
 }
 .btn-danger-outline {
-  background: transparent;
-  border: 1px solid var(--urgent);
+  background: var(--urgent-bg);
   color: var(--urgent);
 }
 .btn:active {
   transform: scale(0.97);
 }
 .attn.hero .btn-info,
-.attn.hero .btn-success {
+.attn.hero .btn-success,
+.attn.hero .btn-danger-outline {
   background: rgba(255, 255, 255, 0.22);
   color: #fff;
 }
-.attn.hero .btn-danger-outline {
-  border-color: rgba(255, 255, 255, 0.5);
-  color: #fff;
+
+/* Compact icon-only variant for secondary actions in a tight row (email/
+   done/ignore) — one labeled primary button plus a few small icon
+   buttons reads as a toolbar, not a wall of pills. */
+.btn-icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+}
+.btn-icon svg {
+  width: 15px;
+  height: 15px;
 }
 
 .kid {
