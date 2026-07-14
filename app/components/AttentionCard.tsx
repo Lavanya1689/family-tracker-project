@@ -1,9 +1,9 @@
 import type { Item, Kid } from "@/lib/types";
-import { formatDueLabel, formatRelativeTime } from "@/lib/format";
+import { formatDueLabel } from "@/lib/format";
 import { KidChip } from "./KidChip";
 import { CategoryIcon } from "@/lib/category-icon";
-import { authorDisplayName, type ItemComment } from "@/lib/comments";
-import { CommentForm } from "./CommentForm";
+import type { ItemComment } from "@/lib/comments";
+import { CommentPanel } from "./CommentPanel";
 import { addToCalendar, ignoreItem, markDone } from "../actions";
 
 function SourceIcon({ sourceType }: { sourceType: Item["source_type"] }) {
@@ -81,7 +81,7 @@ export function AttentionCard({
         </form>
         {item.source_type === "gmail" && item.gmail_message_id && (
           <a
-            className="btn btn-ghost"
+            className="btn btn-info"
             href={`https://mail.google.com/mail/u/0/#all/${item.gmail_message_id}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -91,32 +91,23 @@ export function AttentionCard({
         )}
         <form action={markDone}>
           <input type="hidden" name="id" value={item.id} />
-          <button className="btn btn-ghost" type="submit">
+          <button className="btn btn-success" type="submit">
             Done
           </button>
         </form>
         <form action={ignoreItem}>
           <input type="hidden" name="id" value={item.id} />
-          <button className="btn btn-ghost" type="submit">
+          <button className="btn btn-danger-outline" type="submit">
             Ignore
           </button>
         </form>
+        <CommentPanel
+          itemId={item.id}
+          itemTitle={item.title}
+          comments={comments}
+          currentUserEmail={currentUserEmail}
+        />
       </div>
-
-      {comments.length > 0 && (
-        <div className="comment-thread">
-          {comments.map((c) => (
-            <div className="comment" key={c.id}>
-              <span className="comment-author">
-                {c.author_email === currentUserEmail ? "You" : authorDisplayName(c.author_email)}
-              </span>
-              <span className="comment-time">{formatRelativeTime(c.created_at)}</span>
-              <p className="comment-body">{c.body}</p>
-            </div>
-          ))}
-        </div>
-      )}
-      <CommentForm itemId={item.id} itemTitle={item.title} />
     </div>
   );
 }

@@ -27,9 +27,3 @@ export async function getCommentsByItemIds(itemIds: string[]): Promise<Map<strin
   }
   return byItem;
 }
-
-// Shown next to a comment instead of the full address — "lavanya", not
-// "lavanyatangati@gmail.com" — plenty to tell two parents apart.
-export function authorDisplayName(email: string): string {
-  return email.split("@")[0];
-}

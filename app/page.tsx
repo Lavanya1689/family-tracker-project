@@ -112,7 +112,7 @@ export default async function TodayPage() {
                       </button>
                     </form>
                     <a
-                      className="btn btn-ghost"
+                      className="btn btn-info"
                       href={`https://mail.google.com/mail/u/0/#all/${entry.group.messageId}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -121,13 +121,13 @@ export default async function TodayPage() {
                     </a>
                     <form action={markGroupDone}>
                       <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
-                      <button className="btn btn-ghost" type="submit">
+                      <button className="btn btn-success" type="submit">
                         Done
                       </button>
                     </form>
                     <form action={ignoreGroup}>
                       <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
-                      <button className="btn btn-ghost" type="submit">
+                      <button className="btn btn-danger-outline" type="submit">
                         Ignore
                       </button>
                     </form>

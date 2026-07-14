@@ -341,3 +341,22 @@ export async function addComment(formData: FormData) {
 
   revalidatePath("/");
 }
+
+// Restricted to the comment's own author via the .eq below (defense in
+// depth — the UI only ever shows the delete button on your own comments,
+// but the server shouldn't trust that alone).
+export async function deleteComment(formData: FormData) {
+  const id = formData.get("id");
+  if (typeof id !== "string") return;
+
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return;
+
+  const db = supabaseAdmin();
+  const { error } = await db.from("item_comments").delete().eq("id", id).eq("author_email", user.email);
+  if (error) throw error;
+  revalidatePath("/");
+}
