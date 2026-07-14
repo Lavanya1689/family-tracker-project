@@ -43,7 +43,14 @@ async function buildContext(): Promise<string> {
 
   const kidsLine = ((kids ?? []) as Kid[]).map((k) => `${k.name}${k.context ? ` (${k.context})` : ""}`).join(", ");
 
-  return `Kids in this family: ${kidsLine || "none configured"}
+  // Without this, "today"/"this week" are meaningless to the model — it
+  // has no other way to know the current date, and the server's own
+  // clock is UTC (Vercel), not the family's timezone.
+  const today = formatDateInTz(new Date(), undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  return `Today's date is ${today}.
+
+Kids in this family: ${kidsLine || "none configured"}
 
 Current items (needs_attention or scheduled, i.e. not yet handled):
 ${lines.length > 0 ? lines.join("\n") : "(none — everything is caught up)"}`;
