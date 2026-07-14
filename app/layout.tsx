@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/goo
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
 import { NavShell } from "./components/NavShell";
+import { AssistantWidget } from "./components/AssistantWidget";
 import { supabaseServer } from "@/lib/supabase-server";
 
 const fontHeading = Bricolage_Grotesque({
@@ -57,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <div className="shell">
           {user ? <NavShell userEmail={user.email ?? ""}>{children}</NavShell> : children}
         </div>
+        {user && <AssistantWidget />}
         <RegisterServiceWorker />
       </body>
     </html>

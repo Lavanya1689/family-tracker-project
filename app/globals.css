@@ -1321,18 +1321,59 @@ button.task-row {
   color: var(--brand);
 }
 
-/* Ask Nestly — a real chat UI (fetch + local state), not another
-   form-and-reload page, since "feels static" was the original complaint
-   this whole redesign started from. */
-.assistant-chat {
+/* Ask Nestly — a floating chat bubble available from anywhere, not a
+   separate page to navigate to and back from. Sits above the mobile tab
+   bar (env(safe-area-inset-bottom) + tab bar height) so it never overlaps
+   it; desktop just needs the plain offset. */
+.assistant-fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--ink-solid);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-pin, var(--shadow));
+  cursor: pointer;
+  z-index: 90;
+}
+.assistant-fab svg {
+  width: 22px;
+  height: 22px;
+}
+.assistant-widget {
+  position: fixed;
+  right: 18px;
+  bottom: calc(138px + env(safe-area-inset-bottom));
+  left: 18px;
+  max-width: 360px;
+  margin-left: auto;
+  height: min(480px, calc(100vh - 220px));
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 160px);
-  max-height: 640px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: var(--surface);
+  box-shadow: var(--shadow-pin, var(--shadow));
   overflow: hidden;
+  z-index: 90;
+}
+.assistant-widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.assistant-widget-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14.5px;
 }
 .assistant-messages {
   flex: 1;
@@ -1397,6 +1438,12 @@ button.task-row {
 }
 
 @media (min-width: 900px) {
+  .assistant-fab {
+    bottom: 24px;
+  }
+  .assistant-widget {
+    bottom: 88px;
+  }
   .sidebar {
     display: flex;
     flex-direction: column;
