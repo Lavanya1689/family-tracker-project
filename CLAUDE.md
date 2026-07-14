@@ -202,3 +202,24 @@ feature spec. Do not build them yet, even partially.
   Today stays focused on needs-attention + today's events only. The rest
   of the rebrand (colors, fonts, hero card, category/source badges)
   stands.
+- 2026-07-14: Added item comments (targeted push) and a read-only AI
+  assistant. Comments needed a prerequisite: push_subscriptions had no
+  concept of which signed-in user owns a device, so notifications could
+  only ever broadcast to everyone — added push_subscriptions.user_email
+  (set in app/api/push/subscribe/route.ts, which is now auth-checked
+  in-handler since middleware's matcher excludes /api) and
+  lib/push.ts's sendPushToOthers, so posting a comment notifies the other
+  parent's devices, not your own. New item_comments table, scoped to
+  needs-attention items only for v1 (AttentionCard.tsx) — Schedule/
+  TimelineItem comments are a natural follow-up, not built yet. The AI
+  assistant (app/assistant/page.tsx, "Ask" in the nav) is explicitly
+  read-only — answers questions grounded in real current item data
+  (lib/assistant.ts inlines all non-handled items into the prompt, same
+  small-volume-so-no-RAG-needed reasoning lib/gemini.ts already uses for
+  extraction) but has no tool-calling/mutation path at all, enforced by
+  there being nothing wired up for it to call, not just a prompt
+  instruction. Chat history is session-only (client React state, lost on
+  refresh) — no new table for messages, kept deliberately simple. Both
+  decisions (read-only, session-only) were explicit trade-offs against a
+  bigger build (tool-calling agent, persisted cross-device chat) — could
+  revisit either later if the simpler version proves limiting.

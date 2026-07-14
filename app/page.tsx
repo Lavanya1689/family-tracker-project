@@ -1,6 +1,8 @@
 import type { Item } from "@/lib/types";
 import { getTodayData } from "@/lib/today";
 import { formatTodayLabel } from "@/lib/format";
+import { getCommentsByItemIds } from "@/lib/comments";
+import { supabaseServer } from "@/lib/supabase-server";
 import { AttentionCard } from "./components/AttentionCard";
 import { TimelineItem } from "./components/TimelineItem";
 import { EnableNotifications } from "./components/EnableNotifications";
@@ -35,6 +37,18 @@ function EmptyBoard({ children }: { children: React.ReactNode }) {
 export default async function TodayPage() {
   const { kids, attentionEntries, todayEvents, emailsReadRecently } = await getTodayData();
   const kidById = (id: string | null) => kids.find((k) => k.id === id) ?? null;
+
+  const attentionItemIds = attentionEntries.flatMap((e) =>
+    e.kind === "single" ? [e.item.id] : e.group.items.map((i) => i.id)
+  );
+  const [commentsByItem, supabase] = await Promise.all([
+    getCommentsByItemIds(attentionItemIds),
+    supabaseServer(),
+  ]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const currentUserEmail = user?.email ?? "";
 
   const attentionCount = attentionEntries.reduce(
     (n, e) => n + (e.kind === "single" ? 1 : e.group.items.length),
@@ -75,6 +89,8 @@ export default async function TodayPage() {
                 item={entry.item}
                 kid={kidById(entry.item.kid_id)}
                 isHero={i === 0}
+                comments={commentsByItem.get(entry.item.id) ?? []}
+                currentUserEmail={currentUserEmail}
               />
             ) : (
               <details className="attn-group" key={entry.group.items[0].id}>
@@ -119,7 +135,14 @@ export default async function TodayPage() {
                 </div>
                 <div className="attn-group-items">
                   {entry.group.items.map((item) => (
-                    <AttentionCard key={item.id} item={item} kid={kidById(item.kid_id)} inGroup />
+                    <AttentionCard
+                      key={item.id}
+                      item={item}
+                      kid={kidById(item.kid_id)}
+                      inGroup
+                      comments={commentsByItem.get(item.id) ?? []}
+                      currentUserEmail={currentUserEmail}
+                    />
                   ))}
                 </div>
               </details>

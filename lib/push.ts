@@ -17,16 +17,12 @@ export interface PushPayload {
   url?: string;
 }
 
-// Sends to every subscribed device (each parent's phone). A dead
-// subscription (410/404) is removed rather than retried.
-export async function sendPushToAll(payload: PushPayload) {
+async function sendToSubscriptions(subs: { id: string; endpoint: string; p256dh: string; auth: string }[], payload: PushPayload) {
   configureWebPush();
   const db = supabaseAdmin();
-  const { data: subs, error } = await db.from("push_subscriptions").select("*");
-  if (error) throw error;
 
   await Promise.all(
-    (subs ?? []).map(async (sub) => {
+    subs.map(async (sub) => {
       try {
         await webpush.sendNotification(
           {
@@ -44,4 +40,29 @@ export async function sendPushToAll(payload: PushPayload) {
       }
     })
   );
+}
+
+// Sends to every subscribed device (each parent's phone). A dead
+// subscription (410/404) is removed rather than retried. Used for
+// household-wide notices (new items extracted, a reminder firing) where
+// everyone should hear about it.
+export async function sendPushToAll(payload: PushPayload) {
+  const db = supabaseAdmin();
+  const { data: subs, error } = await db.from("push_subscriptions").select("*");
+  if (error) throw error;
+  await sendToSubscriptions(subs ?? [], payload);
+}
+
+// Sends to every device except the given user's own — e.g. so posting a
+// comment notifies the other parent, not yourself. Filtered in JS rather
+// than via `.neq("user_email", ...)`: Postgres's <> doesn't match NULL
+// rows, so a DB-side filter would silently drop subscriptions with no
+// user_email (registered before Supabase Auth existed) instead of
+// including them, which is the opposite of the intent.
+export async function sendPushToOthers(excludeEmail: string, payload: PushPayload) {
+  const db = supabaseAdmin();
+  const { data: subs, error } = await db.from("push_subscriptions").select("*");
+  if (error) throw error;
+  const others = (subs ?? []).filter((s) => s.user_email !== excludeEmail);
+  await sendToSubscriptions(others, payload);
 }

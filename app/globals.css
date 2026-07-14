@@ -375,6 +375,66 @@ h3,
   margin-top: 12px;
 }
 
+.comment-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.comment {
+  font-size: 12.5px;
+}
+.comment-author {
+  font-weight: 600;
+  color: var(--ink);
+}
+.comment-time {
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  margin-left: 6px;
+}
+.comment-body {
+  color: var(--ink-soft);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.comment-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 9px;
+  padding: 7px 11px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.attn.hero .comment-thread {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+.attn.hero .comment-author,
+.attn.hero .comment-body {
+  color: #fff;
+}
+.attn.hero .comment-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+.attn.hero .comment-input {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.attn.hero .comment-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
 /* Collapsible cluster for multiple needs-attention items from one email —
    native <details>/<summary>, no JS needed. */
 .attn-group {
@@ -1136,6 +1196,81 @@ button.task-row {
 }
 .week-leader strong {
   color: var(--brand);
+}
+
+/* Ask Nestly — a real chat UI (fetch + local state), not another
+   form-and-reload page, since "feels static" was the original complaint
+   this whole redesign started from. */
+.assistant-chat {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 160px);
+  max-height: 640px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.assistant-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.assistant-hint {
+  color: var(--ink-faint);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 2px;
+}
+.assistant-msg {
+  max-width: 80%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.assistant-msg p {
+  white-space: pre-wrap;
+}
+.assistant-msg.user {
+  align-self: flex-end;
+  background: var(--ink-solid);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.assistant-msg.assistant {
+  align-self: flex-start;
+  background: var(--seg-bg);
+  color: var(--ink);
+  border-bottom-left-radius: 4px;
+}
+.assistant-thinking {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+.assistant-error {
+  color: var(--urgent);
+  font-size: 12.5px;
+  padding: 4px 2px;
+}
+.assistant-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+.assistant-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--canvas);
+  border-radius: 9px;
+  padding: 9px 13px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--ink);
 }
 
 @media (min-width: 900px) {

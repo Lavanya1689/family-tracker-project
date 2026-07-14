@@ -1,8 +1,9 @@
 import type { Item, Kid } from "@/lib/types";
-import { formatDueLabel } from "@/lib/format";
+import { formatDueLabel, formatRelativeTime } from "@/lib/format";
 import { KidChip } from "./KidChip";
 import { CategoryIcon } from "@/lib/category-icon";
-import { addToCalendar, ignoreItem, markDone } from "../actions";
+import { authorDisplayName, type ItemComment } from "@/lib/comments";
+import { addToCalendar, ignoreItem, markDone, addComment } from "../actions";
 
 function SourceIcon({ sourceType }: { sourceType: Item["source_type"] }) {
   if (sourceType === "ics") {
@@ -34,6 +35,8 @@ export function AttentionCard({
   kid,
   isHero = false,
   inGroup = false,
+  comments = [],
+  currentUserEmail = "",
 }: {
   item: Item;
   kid: Pick<Kid, "name" | "color_key"> | null;
@@ -42,6 +45,8 @@ export function AttentionCard({
   // shown once at the group level — repeating the identical provenance
   // line on every one of N items from the same email is pure noise.
   inGroup?: boolean;
+  comments?: ItemComment[];
+  currentUserEmail?: string;
 }) {
   return (
     <div className={`attn${isHero ? " hero" : ""}`}>
@@ -96,6 +101,28 @@ export function AttentionCard({
           </button>
         </form>
       </div>
+
+      {comments.length > 0 && (
+        <div className="comment-thread">
+          {comments.map((c) => (
+            <div className="comment" key={c.id}>
+              <span className="comment-author">
+                {c.author_email === currentUserEmail ? "You" : authorDisplayName(c.author_email)}
+              </span>
+              <span className="comment-time">{formatRelativeTime(c.created_at)}</span>
+              <p className="comment-body">{c.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <form action={addComment} className="comment-form">
+        <input type="hidden" name="item_id" value={item.id} />
+        <input type="hidden" name="item_title" value={item.title} />
+        <input type="text" name="body" placeholder="Add a comment…" className="comment-input" />
+        <button className="btn btn-ghost btn-outline" type="submit">
+          Send
+        </button>
+      </form>
     </div>
   );
 }

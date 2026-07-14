@@ -140,6 +140,29 @@ create table if not exists push_subscriptions (
   created_at timestamptz not null default now()
 );
 
+-- Which signed-in user registered this device — lets a notification be
+-- targeted at "the other parent" instead of broadcasting to everyone,
+-- e.g. so you don't get pushed your own comment back. Nullable: rows from
+-- before Supabase Auth existed have no user attached and stay
+-- broadcast-eligible via sendPushToAll.
+alter table push_subscriptions add column if not exists user_email text;
+
+-- ---------------------------------------------------------------------------
+-- item_comments: lightweight per-item discussion thread ("can you grab
+-- this pickup?") so coordinating about a specific item doesn't require
+-- leaving the app. Posting notifies every other household member's
+-- devices (see lib/push.ts's sendPushToOthers), not the author's own.
+-- ---------------------------------------------------------------------------
+create table if not exists item_comments (
+  id uuid primary key default gen_random_uuid(),
+  item_id uuid not null references items(id) on delete cascade,
+  author_email text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists item_comments_item_idx on item_comments (item_id);
+
 -- ---------------------------------------------------------------------------
 -- grocery_items: superseded by todo_lists/todo_items below (kept around only
 -- so the one-time migration script has something to read from; not used by

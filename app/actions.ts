@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
 import { localToUtcIso } from "@/lib/timezone";
-import { sendPushToAll } from "@/lib/push";
+import { sendPushToAll, sendPushToOthers } from "@/lib/push";
+import { supabaseServer } from "@/lib/supabase-server";
 
 // Moves an item from "needs attention" onto the calendar: status becomes
 // "scheduled" (same status ICS-sourced events already use), which both
@@ -300,4 +301,43 @@ export async function updateGeminiInstructions(formData: FormData) {
     .eq("id", true);
   if (error) throw error;
   revalidatePath("/settings");
+}
+
+// Posts a comment on an item and notifies everyone *except* the author —
+// so typing "can you grab this?" pings the other parent's phone, not your
+// own. A failed push must never fail the comment itself; it's already
+// saved regardless of whether the notification goes out.
+export async function addComment(formData: FormData) {
+  const itemId = formData.get("item_id");
+  const body = formData.get("body");
+  const itemTitle = formData.get("item_title");
+  if (typeof itemId !== "string") return;
+  if (typeof body !== "string" || body.trim().length === 0) return;
+
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return;
+
+  const db = supabaseAdmin();
+  const { error } = await db.from("item_comments").insert({
+    item_id: itemId,
+    author_email: user.email,
+    body: body.trim(),
+  });
+  if (error) throw error;
+
+  try {
+    const title = typeof itemTitle === "string" && itemTitle.length > 0 ? itemTitle : "an item";
+    await sendPushToOthers(user.email, {
+      title: `New comment from ${user.email.split("@")[0]}`,
+      body: `${title}: ${body.trim().slice(0, 120)}`,
+      url: "/",
+    });
+  } catch (err) {
+    console.error("comment push notification failed", err);
+  }
+
+  revalidatePath("/");
 }
