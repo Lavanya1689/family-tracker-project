@@ -1,11 +1,11 @@
 import { supabaseAdmin } from "./supabase";
 
-export async function getGeminiCustomInstructions(): Promise<string | null> {
+export async function getGeminiCustomInstructions(householdId: string): Promise<string | null> {
   const db = supabaseAdmin();
   const { data } = await db
     .from("app_settings")
     .select("gemini_custom_instructions")
-    .eq("id", true)
+    .eq("household_id", householdId)
     .maybeSingle();
   return data?.gemini_custom_instructions ?? null;
 }
@@ -15,12 +15,12 @@ export type LastRunField = "last_gmail_sync_at" | "last_ics_sync_at" | "last_rem
 // Called at the end of each background job (Gmail sync, ICS sync, reminders
 // cron) so the Settings page can show whether a job is actually running,
 // instead of the parent guessing why a reminder didn't show up.
-export async function markLastRun(field: LastRunField): Promise<void> {
+export async function markLastRun(householdId: string, field: LastRunField): Promise<void> {
   const db = supabaseAdmin();
   const { error } = await db
     .from("app_settings")
     .update({ [field]: new Date().toISOString() })
-    .eq("id", true);
+    .eq("household_id", householdId);
   if (error) console.error(`Failed to record ${field}:`, error);
 }
 
@@ -31,14 +31,17 @@ export interface JobStatus {
   lastRemindersRunAt: string | null;
 }
 
-export async function getJobStatus(): Promise<JobStatus> {
+export async function getJobStatus(householdId: string): Promise<JobStatus> {
   const db = supabaseAdmin();
   const [{ count }, { data: settings }] = await Promise.all([
-    db.from("push_subscriptions").select("*", { count: "exact", head: true }),
+    db
+      .from("push_subscriptions")
+      .select("*", { count: "exact", head: true })
+      .eq("household_id", householdId),
     db
       .from("app_settings")
       .select("last_gmail_sync_at, last_ics_sync_at, last_reminders_run_at")
-      .eq("id", true)
+      .eq("household_id", householdId)
       .maybeSingle(),
   ]);
 

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentHouseholdId } from "@/lib/household";
 import { getDayData } from "@/lib/day";
 import { getWeekData } from "@/lib/week";
 import { getMonthData } from "@/lib/month";
@@ -39,6 +41,9 @@ export default async function SchedulePage({
 }: {
   searchParams: Promise<{ view?: string; date?: string }>;
 }) {
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) redirect("/onboarding");
+
   const params = await searchParams;
   const view: ViewMode = params.view === "day" || params.view === "month" ? params.view : "week";
   const refDate = parseDateParam(params.date);

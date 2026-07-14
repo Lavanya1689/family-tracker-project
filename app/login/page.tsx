@@ -5,8 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 const ERROR_MESSAGES: Record<string, string> = {
-  not_allowed: "That Google account isn't on Nestly's household allowlist.",
   auth_failed: "Sign-in failed. Please try again.",
+  invalid_invite: "That invite link is invalid or has already been used.",
+  invite_failed: "Couldn't complete that invite — the account may already belong to a different household.",
 };
 
 function Brand() {
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const errorCode = searchParams.get("error");
+  const isInvite = searchParams.get("invite") === "1";
 
   async function signIn() {
     setLoading(true);
@@ -50,7 +52,9 @@ export default function LoginPage() {
     >
       <Brand />
       <p className="subgreet" style={{ textAlign: "center", maxWidth: 320 }}>
-        Your family, sorted. Sign in with the Google account you use for Nestly.
+        {isInvite
+          ? "You've been invited to join a family on Nestly. Sign in with Google to accept."
+          : "Your family, sorted. Sign in with the Google account you use for Nestly."}
       </p>
       {errorCode && (
         <p className="attn-body" style={{ color: "var(--urgent)", textAlign: "center", maxWidth: 320 }}>

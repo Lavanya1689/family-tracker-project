@@ -223,3 +223,46 @@ feature spec. Do not build them yet, even partially.
   decisions (read-only, session-only) were explicit trade-offs against a
   bigger build (tool-calling agent, persisted cross-device chat) — could
   revisit either later if the simpler version proves limiting.
+- 2026-07-14: Started multi-household support — reverses this file's
+  earlier "single-household app (no per-user data, no RLS)" framing, at
+  the user's explicit request after being warned this was a genuine
+  multi-tenancy rewrite (every table needs a household_id) rather than an
+  incremental feature, and that "real accounts/permissions/sharing/
+  invitations" had already been flagged and deferred once (2026-07-10
+  entry above) pending "its own scoping pass" — this is that pass.
+  Decided: invites are a shareable link (household_invitations.token),
+  not sent email — no new infrastructure, same pattern the ICS feed
+  publish endpoint already uses. One household per user, no
+  switcher UI — enforced by a unique index on household_members.user_email.
+  Still no RLS — household_id is enforced in application code via
+  supabaseAdmin() (service role), never the anon key, matching how the
+  app already worked. Phase A (schema: households/household_members/
+  household_invitations, household_id added to every existing table,
+  app_settings restructured from a singleton `id boolean` row — which
+  can't hold more than one real row — to one row per household) and
+  Phase B (auth: /auth/callback checks household_members instead of
+  ALLOWED_EMAILS, /onboarding for first-time sign-ins with no household,
+  /invite/[token] for accepting one) are done; migrated the existing
+  installation's data via scripts/migrate-to-households.ts (one-time,
+  safe to re-run — skips if a household already exists).
+  Known gap, explicit and temporary: lib/household.ts's
+  getSoleHouseholdId() is an interim stand-in everywhere a real
+  per-household loop belongs (the three cron jobs, the ICS feed publish
+  token lookup) — correct today because there is exactly one household,
+  wrong the moment a second one exists. Most page-level data reads
+  (today.ts, week.ts, month.ts, lists.ts, todo-lists.ts, comments.ts,
+  assistant.ts, push.ts's broadcast functions) are similarly still
+  unscoped by household_id — safe for the same single-household-today
+  reason, not yet safe for real multi-tenancy. This remaining query-
+  scoping work, the members-list UI polish (last-sign-in, nicer
+  invite-link presentation), and @mentions are not built yet — next up.
+  Also: the second family member was an active user under the old
+  ALLOWED_EMAILS model but is NOT YET in household_members post-migration
+  (only the account that ran the migration script was auto-added) —
+  deliberately left for them to join via a real invite link rather than
+  the assistant inferring their identity from app data and adding them
+  directly, per an explicit permission denial during this work (personal
+  email addresses shouldn't be written into this file regardless — it's
+  committed to a public repo). They must not sign in again until sent
+  that invite, or they'll be routed into onboarding and create a second,
+  wrong household.

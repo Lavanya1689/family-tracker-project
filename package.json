@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "ingest:gmail": "tsx --env-file=.env.local scripts/run-gmail-ingest.ts",
-    "ingest:ics": "tsx --env-file=.env.local scripts/run-ics-ingest.ts"
+    "ingest:gmail": "tsx scripts/run-gmail-ingest.ts",
+    "ingest:ics": "tsx scripts/run-ics-ingest.ts",
+    "migrate:households": "tsx scripts/migrate-to-households.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

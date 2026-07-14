@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabase";
 import { sendPushToAll } from "./push";
 import { markLastRun } from "./settings";
+import { getSoleHouseholdId } from "./household";
 
 export interface ReminderIngestResult {
   remindersDue: number;
@@ -15,6 +16,9 @@ export interface ReminderIngestResult {
 export async function ingestReminders(): Promise<ReminderIngestResult> {
   const db = supabaseAdmin();
   const result: ReminderIngestResult = { remindersDue: 0, remindersNotified: 0 };
+  // Interim single-household lookup — see lib/household.ts's
+  // getSoleHouseholdId for why this isn't a real per-household loop yet.
+  const householdId = await getSoleHouseholdId();
 
   const { data: due, error } = await db
     .from("reminders")
@@ -45,6 +49,6 @@ export async function ingestReminders(): Promise<ReminderIngestResult> {
     }
   }
 
-  await markLastRun("last_reminders_run_at");
+  await markLastRun(householdId, "last_reminders_run_at");
   return result;
 }

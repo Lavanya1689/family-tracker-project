@@ -1,10 +1,12 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
 import { localToUtcIso } from "@/lib/timezone";
 import { sendPushToAll, sendPushToOthers } from "@/lib/push";
 import { supabaseServer } from "@/lib/supabase-server";
+import { createHousehold, createInvitation, getCurrentHouseholdId } from "@/lib/household";
 
 // Moves an item from "needs attention" onto the calendar: status becomes
 // "scheduled" (same status ICS-sourced events already use), which both
@@ -291,6 +293,9 @@ export async function updateGeminiInstructions(formData: FormData) {
   const instructions = formData.get("instructions");
   if (typeof instructions !== "string") return;
 
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) return;
+
   const db = supabaseAdmin();
   const { error } = await db
     .from("app_settings")
@@ -298,7 +303,7 @@ export async function updateGeminiInstructions(formData: FormData) {
       gemini_custom_instructions: instructions.trim().length > 0 ? instructions.trim() : null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", true);
+    .eq("household_id", householdId);
   if (error) throw error;
   revalidatePath("/settings");
 }
@@ -359,4 +364,36 @@ export async function deleteComment(formData: FormData) {
   const { error } = await db.from("item_comments").delete().eq("id", id).eq("author_email", user.email);
   if (error) throw error;
   revalidatePath("/");
+}
+
+export async function createHouseholdAction(formData: FormData) {
+  const name = formData.get("name");
+  if (typeof name !== "string" || name.trim().length === 0) return;
+
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return;
+
+  await createHousehold(name.trim(), user.email);
+  redirect("/");
+}
+
+// Returns the new invite's token (not a URL — the client component
+// prepends window.location.origin, since a server action doesn't reliably
+// know the browser's own origin) rather than redirecting, so the caller
+// can display it inline without a page reload.
+export async function createInviteAction(): Promise<{ token: string } | { error: string }> {
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "Not signed in" };
+
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) return { error: "No household found" };
+
+  const token = await createInvitation(householdId, user.email);
+  return { token };
 }

@@ -6,6 +6,7 @@ import { gmailProvenance } from "./provenance";
 import { localToUtcIso } from "./timezone";
 import { sendPushToAll } from "./push";
 import { getGeminiCustomInstructions, markLastRun } from "./settings";
+import { getSoleHouseholdId } from "./household";
 
 // Gemini is instructed to return naive local wall-clock strings (no
 // timezone suffix) — convert them to the correct UTC instant for the
@@ -37,6 +38,9 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
   const watchSenders = getWatchSenders();
   const kidsConfig = getKidsConfig();
   const db = supabaseAdmin();
+  // Interim single-household lookup — see lib/household.ts's
+  // getSoleHouseholdId for why this isn't a real per-household loop yet.
+  const householdId = await getSoleHouseholdId();
 
   const result: GmailIngestResult = {
     emailsSeen: 0,
@@ -60,7 +64,7 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
 
   // Fetched once per run, not per email — this is user-editable via the
   // Settings page, refining Gemini's judgment on top of the base rules.
-  const customInstructions = await getGeminiCustomInstructions();
+  const customInstructions = await getGeminiCustomInstructions(householdId);
 
   // Every item created below starts life as "needs_attention" — collect
   // their titles so we can push a single reminder notification once
@@ -199,6 +203,6 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
     }
   }
 
-  await markLastRun("last_gmail_sync_at");
+  await markLastRun(householdId, "last_gmail_sync_at");
   return result;
 }

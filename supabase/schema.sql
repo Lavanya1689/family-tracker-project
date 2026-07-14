@@ -1,9 +1,53 @@
--- Nestly — Phase 1 schema
--- Single-household app (no multi-tenant / RLS needed yet): API routes talk to
--- Supabase with the service role key. Run this once against a fresh project
--- via the SQL editor, or `supabase db push` if you're using the CLI.
+-- Nestly — schema
+-- Multi-household: every household-scoped table carries a household_id
+-- (see the households/household_members/household_invitations block
+-- below). Still no RLS — API routes talk to Supabase with the service
+-- role key and scope every query by household_id in application code
+-- instead. Run this once against a fresh project via the SQL editor, or
+-- `supabase db push` if you're using the CLI. Existing installs
+-- migrating from the old single-household model: see the app_settings
+-- section below for the two-pass run order.
 
 create extension if not exists pgcrypto;
+
+-- ---------------------------------------------------------------------------
+-- households / household_members / household_invitations: multi-tenancy.
+-- One household per user (enforced by the unique index on user_email below)
+-- — no household-switcher UI, no multi-membership edge cases. Every other
+-- table below is scoped to a household via a household_id column.
+-- Invitations are a shareable link (household_invitations.token), not sent
+-- email — same "private unguessable URL" pattern the ICS feed publish
+-- endpoint already uses, no new email infrastructure needed.
+-- ---------------------------------------------------------------------------
+create table if not exists households (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  -- Replaces the old global ICS_PUBLISH_TOKEN env var — each household
+  -- needs its own, or one leaks every household's events on one URL.
+  ics_publish_token text not null unique,
+  created_by text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists household_members (
+  household_id uuid not null references households(id) on delete cascade,
+  user_email text not null,
+  joined_at timestamptz not null default now(),
+  primary key (household_id, user_email)
+);
+
+create unique index if not exists household_members_user_unique
+  on household_members (user_email);
+
+create table if not exists household_invitations (
+  id uuid primary key default gen_random_uuid(),
+  household_id uuid not null references households(id) on delete cascade,
+  token text not null unique,
+  created_by text not null,
+  created_at timestamptz not null default now(),
+  accepted_by text,
+  accepted_at timestamptz
+);
 
 -- ---------------------------------------------------------------------------
 -- kids: real names come from KIDS env config at seed time, never hardcoded.
@@ -16,6 +60,9 @@ create table if not exists kids (
   context text, -- e.g. "2nd grade at May Watts Elementary" — helps Gemini attribute items
   created_at timestamptz not null default now()
 );
+
+alter table kids add column if not exists household_id uuid references households(id);
+create index if not exists kids_household_idx on kids (household_id);
 
 -- ---------------------------------------------------------------------------
 -- google_accounts: server-held Google refresh tokens so cron jobs can read
@@ -30,6 +77,9 @@ create table if not exists google_accounts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table google_accounts add column if not exists household_id uuid references households(id);
+create index if not exists google_accounts_household_idx on google_accounts (household_id);
 
 -- ---------------------------------------------------------------------------
 -- gmail_messages: dedupe ledger. A message id present here has already been
@@ -56,10 +106,12 @@ create table if not exists gmail_messages (
 -- must run before the index below that references rfc822_message_id.
 alter table gmail_messages add column if not exists rfc822_message_id text;
 alter table gmail_messages add column if not exists account_email text;
+alter table gmail_messages add column if not exists household_id uuid references households(id);
 
 create unique index if not exists gmail_messages_rfc822_dedupe
   on gmail_messages (rfc822_message_id)
   where rfc822_message_id is not null;
+create index if not exists gmail_messages_household_idx on gmail_messages (household_id);
 
 -- ---------------------------------------------------------------------------
 -- ics_feeds: external calendars ingested as a structured source (school
@@ -74,6 +126,9 @@ create table if not exists ics_feeds (
   last_etag text,
   created_at timestamptz not null default now()
 );
+
+alter table ics_feeds add column if not exists household_id uuid references households(id);
+create index if not exists ics_feeds_household_idx on ics_feeds (household_id);
 
 -- ---------------------------------------------------------------------------
 -- items: the unified extracted/ingested record behind both the Today view
@@ -128,6 +183,9 @@ create index if not exists items_starts_at_idx on items (starts_at);
 create index if not exists items_due_at_idx on items (due_at);
 create index if not exists items_kid_id_idx on items (kid_id);
 
+alter table items add column if not exists household_id uuid references households(id);
+create index if not exists items_household_idx on items (household_id);
+
 -- ---------------------------------------------------------------------------
 -- push_subscriptions: browser Push API subscriptions for PWA notifications.
 -- One household, but multiple devices (each parent's phone) can subscribe.
@@ -146,6 +204,11 @@ create table if not exists push_subscriptions (
 -- before Supabase Auth existed have no user attached and stay
 -- broadcast-eligible via sendPushToAll.
 alter table push_subscriptions add column if not exists user_email text;
+-- Must be scoped too — without this, once a second household exists in
+-- the same database, one household's event would incorrectly push-notify
+-- another household's devices via the broadcast functions.
+alter table push_subscriptions add column if not exists household_id uuid references households(id);
+create index if not exists push_subscriptions_household_idx on push_subscriptions (household_id);
 
 -- ---------------------------------------------------------------------------
 -- item_comments: lightweight per-item discussion thread ("can you grab
@@ -191,6 +254,9 @@ create table if not exists todo_lists (
   created_at timestamptz not null default now()
 );
 
+alter table todo_lists add column if not exists household_id uuid references households(id);
+create index if not exists todo_lists_household_idx on todo_lists (household_id);
+
 create table if not exists todo_items (
   id uuid primary key default gen_random_uuid(),
   list_id uuid not null references todo_lists(id) on delete cascade,
@@ -221,6 +287,8 @@ alter table tasks add column if not exists priority text;
 alter table tasks drop constraint if exists tasks_priority_check;
 alter table tasks add constraint tasks_priority_check
   check (priority in ('low', 'medium', 'high'));
+alter table tasks add column if not exists household_id uuid references households(id);
+create index if not exists tasks_household_idx on tasks (household_id);
 
 -- ---------------------------------------------------------------------------
 -- reminders: manual reminders that actually push-notify at remind_at (see
@@ -237,14 +305,22 @@ create table if not exists reminders (
 );
 
 alter table reminders add column if not exists notified_at timestamptz;
+alter table reminders add column if not exists household_id uuid references households(id);
 
 create index if not exists tasks_owner_idx on tasks (owner_name);
 create index if not exists reminders_remind_at_idx on reminders (remind_at);
+create index if not exists reminders_household_idx on reminders (household_id);
 
 -- ---------------------------------------------------------------------------
--- app_settings: singleton row for user-editable configuration that used to
--- require an env var + redeploy — starting with custom Gemini extraction
--- instructions.
+-- app_settings: was a singleton row (id boolean primary key — a boolean PK
+-- literally cannot hold more than one real row) for user-editable
+-- configuration; now one row per household. Existing installs: run this
+-- file once now (adds household_id, nullable), run
+-- scripts/migrate-to-households.ts (creates the household and backfills
+-- household_id on the existing row and everywhere else), then run this
+-- file again — the guarded block below only flips the primary key over
+-- once every row actually has a household_id, so re-running before the
+-- backfill script is a safe no-op.
 -- ---------------------------------------------------------------------------
 create table if not exists app_settings (
   id boolean primary key default true check (id),
@@ -260,16 +336,33 @@ alter table app_settings add column if not exists last_gmail_sync_at timestamptz
 alter table app_settings add column if not exists last_ics_sync_at timestamptz;
 alter table app_settings add column if not exists last_reminders_run_at timestamptz;
 
-insert into app_settings (id) values (true)
-on conflict (id) do nothing;
+alter table app_settings add column if not exists household_id uuid references households(id);
 
--- ---------------------------------------------------------------------------
--- Seed kids from placeholders — replace with real names via KIDS env or
--- directly in this table. Safe to run once; skipped if already seeded.
--- ---------------------------------------------------------------------------
-insert into kids (name, color_key, context)
-select * from (values
-  ('Vihaan', 'a', '2nd grade at May Watts Elementary'),
-  ('Aanya', 'b', 'Little Sprouts daycare')
-) as seed(name, color_key, context)
-where not exists (select 1 from kids);
+-- No default-row insert here anymore (the old singleton always seeded
+-- one via `insert ... values (true) on conflict do nothing`) — a fresh
+-- install has no household yet to own that row, and it would sit forever
+-- as an orphaned household_id-null row nothing ever backfills. Each
+-- household's app_settings row is created by /onboarding when the
+-- household itself is created (Phase B), and the existing production
+-- row is backfilled by scripts/migrate-to-households.ts below.
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'app_settings' and column_name = 'id'
+  ) and not exists (
+    select 1 from app_settings where household_id is null
+  ) then
+    alter table app_settings drop constraint if exists app_settings_pkey;
+    alter table app_settings alter column household_id set not null;
+    alter table app_settings add primary key (household_id);
+    alter table app_settings drop column id;
+  end if;
+end $$;
+
+-- Placeholder-kid seeding removed now that kids belong to a household
+-- (household_id): a fresh install has no household to attach them to
+-- until someone actually signs in and creates one via /onboarding, so
+-- seeding here would only ever produce orphaned, invisible rows. Add kids
+-- through the app once a household exists instead.

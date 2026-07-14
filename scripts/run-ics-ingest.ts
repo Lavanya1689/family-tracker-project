@@ -1,3 +1,4 @@
+import "./load-env";
 import { ingestIcsFeeds } from "../lib/ingest-ics";
 
 ingestIcsFeeds()

@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import type { Item } from "@/lib/types";
 import type { ItemComment } from "@/lib/comments";
+import { getCurrentHouseholdId } from "@/lib/household";
 import { getTodayData } from "@/lib/today";
 import { formatTodayLabel } from "@/lib/format";
 import { getCommentsByItemIds } from "@/lib/comments";
@@ -50,6 +52,13 @@ function EmptyBoard({ children }: { children: React.ReactNode }) {
 }
 
 export default async function TodayPage() {
+  // Data queries here aren't household-scoped yet (Phase C) — there's
+  // exactly one household today, so this doesn't leak anything, but it
+  // does need to gate access so a signed-in, not-yet-onboarded account
+  // can't render this page's real content before creating/joining one.
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) redirect("/onboarding");
+
   const { kids, attentionEntries, todayEvents, emailsReadRecently } = await getTodayData();
   const kidById = (id: string | null) => kids.find((k) => k.id === id) ?? null;
 

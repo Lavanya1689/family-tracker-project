@@ -1,3 +1,4 @@
+import "./load-env";
 import { ingestGmail } from "../lib/ingest-gmail";
 
 ingestGmail(7)

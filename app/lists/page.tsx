@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { getCurrentHouseholdId } from "@/lib/household";
 import { getListsData, groupTasksByOwner, summarizeWeeklyTasks } from "@/lib/lists";
 import { getTodoLists } from "@/lib/todo-lists";
 import { getHandledItems } from "@/lib/handled";
@@ -76,6 +78,9 @@ function SectionHead({
 }
 
 export default async function ListsPage() {
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) redirect("/onboarding");
+
   const [{ tasks, reminders }, todoLists, handledItems] = await Promise.all([
     getListsData(),
     getTodoLists(),

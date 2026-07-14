@@ -2,6 +2,7 @@ import { supabaseAdmin } from "./supabase";
 import { parseIcsFeed } from "./ics";
 import { icsProvenance } from "./provenance";
 import { markLastRun } from "./settings";
+import { getSoleHouseholdId } from "./household";
 
 export interface IcsIngestResult {
   feedsProcessed: number;
@@ -13,6 +14,9 @@ export interface IcsIngestResult {
 export async function ingestIcsFeeds(): Promise<IcsIngestResult> {
   const db = supabaseAdmin();
   const result: IcsIngestResult = { feedsProcessed: 0, itemsUpserted: 0 };
+  // Interim single-household lookup — see lib/household.ts's
+  // getSoleHouseholdId for why this isn't a real per-household loop yet.
+  const householdId = await getSoleHouseholdId();
 
   const { data: feeds, error } = await db.from("ics_feeds").select("*");
   if (error) throw error;
@@ -52,6 +56,6 @@ export async function ingestIcsFeeds(): Promise<IcsIngestResult> {
     result.itemsUpserted += rows.length;
   }
 
-  await markLastRun("last_ics_sync_at");
+  await markLastRun(householdId, "last_ics_sync_at");
   return result;
 }

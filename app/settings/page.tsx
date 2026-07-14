@@ -1,15 +1,24 @@
+import { redirect } from "next/navigation";
 import { getGeminiCustomInstructions, getJobStatus } from "@/lib/settings";
+import { getCurrentHouseholdId, getHouseholdMembers } from "@/lib/household";
+import { formatRelativeTime } from "@/lib/format";
 import { updateGeminiInstructions } from "../actions";
 import { supabaseServer } from "@/lib/supabase-server";
-import { formatRelativeTime } from "@/lib/format";
 import { EnableNotifications } from "../components/EnableNotifications";
 import { TestNotificationButton } from "../components/TestNotificationButton";
+import { InviteButton } from "../components/InviteButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const instructions = await getGeminiCustomInstructions();
-  const status = await getJobStatus();
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) redirect("/onboarding");
+
+  const [instructions, status, members] = await Promise.all([
+    getGeminiCustomInstructions(householdId),
+    getJobStatus(householdId),
+    getHouseholdMembers(householdId),
+  ]);
   const supabase = await supabaseServer();
   const {
     data: { user },
@@ -33,6 +42,20 @@ export default async function SettingsPage() {
             Sign out
           </button>
         </form>
+      </div>
+
+      <div className="list-section" style={{ maxWidth: 640, marginBottom: 20 }}>
+        <div className="list-section-head">
+          <span className="list-section-title">Household</span>
+        </div>
+        <div style={{ marginBottom: 14 }}>
+          {members.map((m) => (
+            <p className="attn-body" key={m.user_email} style={{ marginBottom: 4 }}>
+              {m.user_email} — joined {formatRelativeTime(m.joined_at)}
+            </p>
+          ))}
+        </div>
+        <InviteButton />
       </div>
 
       <div className="list-section" style={{ maxWidth: 640, marginBottom: 20 }}>
