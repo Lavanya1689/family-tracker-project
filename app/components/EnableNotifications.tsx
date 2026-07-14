@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -10,7 +10,32 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 }
 
 export function EnableNotifications() {
-  const [status, setStatus] = useState<"idle" | "enabling" | "enabled" | "error">("idle");
+  // Starts "checking" rather than "idle" — without this, the button always
+  // renders on first paint even when already subscribed (state was never
+  // persisted across reloads, just held in memory), so it looked broken
+  // every time the app reopened despite notifications actually working.
+  const [status, setStatus] = useState<"checking" | "idle" | "enabling" | "enabled" | "error">("checking");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkExisting() {
+      if (!("serviceWorker" in navigator) || Notification.permission !== "granted") {
+        if (!cancelled) setStatus("idle");
+        return;
+      }
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        if (!cancelled) setStatus(existing ? "enabled" : "idle");
+      } catch {
+        if (!cancelled) setStatus("idle");
+      }
+    }
+    checkExisting();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function enable() {
     setStatus("enabling");
@@ -40,7 +65,7 @@ export function EnableNotifications() {
     }
   }
 
-  if (status === "enabled") return null;
+  if (status === "enabled" || status === "checking") return null;
 
   return (
     <button className="btn btn-ghost btn-outline" onClick={enable} disabled={status === "enabling"}>

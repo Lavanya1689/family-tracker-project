@@ -385,10 +385,13 @@ h3,
 }
 .comment {
   font-size: 12.5px;
+  background: var(--seg-bg);
+  border-radius: 10px;
+  padding: 7px 11px;
 }
 .comment-author {
   font-weight: 600;
-  color: var(--ink);
+  color: var(--brand);
 }
 .comment-time {
   color: var(--ink-faint);
@@ -397,12 +400,13 @@ h3,
   margin-left: 6px;
 }
 .comment-body {
-  color: var(--ink-soft);
+  color: var(--ink);
   margin-top: 2px;
   line-height: 1.4;
 }
 .comment-form {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-top: 10px;
 }
@@ -416,12 +420,26 @@ h3,
   font-size: 12.5px;
   color: var(--ink);
 }
+.comment-input:disabled {
+  opacity: 0.6;
+}
+.comment-sent {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--scheduled);
+  white-space: nowrap;
+}
 .attn.hero .comment-thread {
   border-top-color: rgba(255, 255, 255, 0.3);
 }
-.attn.hero .comment-author,
-.attn.hero .comment-body {
+.attn.hero .comment {
+  background: rgba(255, 255, 255, 0.14);
+}
+.attn.hero .comment-author {
   color: #fff;
+}
+.attn.hero .comment-body {
+  color: rgba(255, 255, 255, 0.92);
 }
 .attn.hero .comment-time {
   color: rgba(255, 255, 255, 0.7);
@@ -433,6 +451,9 @@ h3,
 }
 .attn.hero .comment-input::placeholder {
   color: rgba(255, 255, 255, 0.6);
+}
+.attn.hero .comment-sent {
+  color: #fff;
 }
 
 /* Collapsible cluster for multiple needs-attention items from one email —

@@ -3,7 +3,8 @@ import { formatDueLabel, formatRelativeTime } from "@/lib/format";
 import { KidChip } from "./KidChip";
 import { CategoryIcon } from "@/lib/category-icon";
 import { authorDisplayName, type ItemComment } from "@/lib/comments";
-import { addToCalendar, ignoreItem, markDone, addComment } from "../actions";
+import { CommentForm } from "./CommentForm";
+import { addToCalendar, ignoreItem, markDone } from "../actions";
 
 function SourceIcon({ sourceType }: { sourceType: Item["source_type"] }) {
   if (sourceType === "ics") {
@@ -115,14 +116,7 @@ export function AttentionCard({
           ))}
         </div>
       )}
-      <form action={addComment} className="comment-form">
-        <input type="hidden" name="item_id" value={item.id} />
-        <input type="hidden" name="item_title" value={item.title} />
-        <input type="text" name="body" placeholder="Add a comment…" className="comment-input" />
-        <button className="btn btn-ghost btn-outline" type="submit">
-          Send
-        </button>
-      </form>
+      <CommentForm itemId={item.id} itemTitle={item.title} />
     </div>
   );
 }
