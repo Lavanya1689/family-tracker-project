@@ -10,7 +10,11 @@ import { createServerClient } from "@supabase/ssr";
 //
 // /api routes are excluded: /api/feed is protected by its own token,
 // /api/cron by CRON_SECRET, and the rest aren't browsed to. /login and
-// /auth are excluded so the redirect below can't loop.
+// /auth are excluded so the redirect below can't loop. /invite must be
+// reachable *before* sign-in too — it's how a brand-new person accepts an
+// invitation, so requiring a session first defeats the whole point (this
+// exact bug sent an invited user straight to /login without ever setting
+// the invite cookie /invite/[token]/route.ts needs to set).
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
 
@@ -48,5 +52,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|login|auth|manifest.json|icons|sw.js).*)"],
+  matcher: ["/((?!api|_next|login|auth|invite|manifest.json|icons|sw.js).*)"],
 };
