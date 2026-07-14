@@ -1,10 +1,12 @@
 import type { Item } from "@/lib/types";
+import type { ItemComment } from "@/lib/comments";
 import { getTodayData } from "@/lib/today";
 import { formatTodayLabel } from "@/lib/format";
 import { getCommentsByItemIds } from "@/lib/comments";
 import { supabaseServer } from "@/lib/supabase-server";
 import { AttentionCard } from "./components/AttentionCard";
 import { AttentionGroupCard } from "./components/AttentionGroupCard";
+import { CommentPanel } from "./components/CommentPanel";
 import { TimelineItem } from "./components/TimelineItem";
 import { EnableNotifications } from "./components/EnableNotifications";
 import { addGroupToCalendar, markGroupDone, ignoreGroup } from "./actions";
@@ -17,6 +19,18 @@ function groupPreview(items: Item[]): string {
   const shown = items.slice(0, 2).map((i) => i.title);
   const rest = items.length - shown.length;
   return rest > 0 ? `${shown.join(" · ")} +${rest} more` : shown.join(" · ");
+}
+
+// One merged conversation per email, not per item — comments only have a
+// single item_id to attach to, so new ones from this panel land on the
+// group's first item (an anchor, not a meaningful distinction to the
+// user), but this reads every comment across all of the group's items in
+// one place in case any existed from before line items had comments moved
+// off them.
+function mergeGroupComments(items: Item[], commentsByItem: Map<string, ItemComment[]>): ItemComment[] {
+  return items
+    .flatMap((item) => commentsByItem.get(item.id) ?? [])
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
 function EmptyBoard({ children }: { children: React.ReactNode }) {
@@ -140,6 +154,12 @@ export default async function TodayPage() {
                           </svg>
                         </button>
                       </form>
+                      <CommentPanel
+                        itemId={entry.group.items[0].id}
+                        itemTitle={entry.group.label}
+                        comments={mergeGroupComments(entry.group.items, commentsByItem)}
+                        currentUserEmail={currentUserEmail}
+                      />
                     </div>
                   </div>
                 }
@@ -150,8 +170,6 @@ export default async function TodayPage() {
                     item={item}
                     kid={kidById(item.kid_id)}
                     inGroup
-                    comments={commentsByItem.get(item.id) ?? []}
-                    currentUserEmail={currentUserEmail}
                   />
                 ))}
               </AttentionGroupCard>
