@@ -4,6 +4,7 @@ import { formatTodayLabel } from "@/lib/format";
 import { getCommentsByItemIds } from "@/lib/comments";
 import { supabaseServer } from "@/lib/supabase-server";
 import { AttentionCard } from "./components/AttentionCard";
+import { AttentionGroupCard } from "./components/AttentionGroupCard";
 import { TimelineItem } from "./components/TimelineItem";
 import { EnableNotifications } from "./components/EnableNotifications";
 import { addGroupToCalendar, markGroupDone, ignoreGroup } from "./actions";
@@ -93,67 +94,67 @@ export default async function TodayPage() {
                 currentUserEmail={currentUserEmail}
               />
             ) : (
-              <details className="attn-group" key={entry.group.items[0].id}>
-                <summary className="attn-group-summary">
-                  From: {entry.group.label}
-                  <span className="attn-group-count">{entry.group.items.length} items</span>
-                </summary>
-                <div className="attn-group-quickbar">
-                  <p className="attn-group-preview">{groupPreview(entry.group.items)}</p>
-                  <div className="attn-group-quickactions">
-                    <form action={addGroupToCalendar}>
-                      <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
-                      <button className="btn btn-primary" type="submit">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="4" width="18" height="17" rx="2" />
-                          <path d="M3 9h18M8 2v4M16 2v4M12 13v5M9.5 15.5h5" />
-                        </svg>
-                        Add to calendar
-                      </button>
-                    </form>
-                    <a
-                      className="btn btn-icon btn-info"
-                      href={`https://mail.google.com/mail/u/0/#all/${entry.group.messageId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="View email"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="5" width="18" height="14" rx="2" />
-                        <path d="M3 7l9 6 9-6" />
-                      </svg>
-                    </a>
-                    <form action={markGroupDone}>
-                      <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
-                      <button className="btn btn-icon btn-success" type="submit" title="Done">
+              <AttentionGroupCard
+                key={entry.group.items[0].id}
+                label={entry.group.label}
+                count={entry.group.items.length}
+                quickbar={
+                  <div className="attn-group-quickbar">
+                    <p className="attn-group-preview">{groupPreview(entry.group.items)}</p>
+                    <div className="attn-group-quickactions">
+                      <form action={addGroupToCalendar}>
+                        <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
+                        <button className="btn btn-primary" type="submit">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="4" width="18" height="17" rx="2" />
+                            <path d="M3 9h18M8 2v4M16 2v4M12 13v5M9.5 15.5h5" />
+                          </svg>
+                          Add to calendar
+                        </button>
+                      </form>
+                      <a
+                        className="btn btn-icon btn-info"
+                        href={`https://mail.google.com/mail/u/0/#all/${entry.group.messageId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View email"
+                      >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 6L9 17l-5-5" />
+                          <rect x="3" y="5" width="18" height="14" rx="2" />
+                          <path d="M3 7l9 6 9-6" />
                         </svg>
-                      </button>
-                    </form>
-                    <form action={ignoreGroup}>
-                      <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
-                      <button className="btn btn-icon btn-danger-outline" type="submit" title="Ignore">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </form>
+                      </a>
+                      <form action={markGroupDone}>
+                        <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
+                        <button className="btn btn-icon btn-success" type="submit" title="Done">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        </button>
+                      </form>
+                      <form action={ignoreGroup}>
+                        <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
+                        <button className="btn btn-icon btn-danger-outline" type="submit" title="Ignore">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </form>
+                    </div>
                   </div>
-                </div>
-                <div className="attn-group-items">
-                  {entry.group.items.map((item) => (
-                    <AttentionCard
-                      key={item.id}
-                      item={item}
-                      kid={kidById(item.kid_id)}
-                      inGroup
-                      comments={commentsByItem.get(item.id) ?? []}
-                      currentUserEmail={currentUserEmail}
-                    />
-                  ))}
-                </div>
-              </details>
+                }
+              >
+                {entry.group.items.map((item) => (
+                  <AttentionCard
+                    key={item.id}
+                    item={item}
+                    kid={kidById(item.kid_id)}
+                    inGroup
+                    comments={commentsByItem.get(item.id) ?? []}
+                    currentUserEmail={currentUserEmail}
+                  />
+                ))}
+              </AttentionGroupCard>
             )
           )}
         </div>
