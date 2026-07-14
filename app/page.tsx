@@ -1,10 +1,20 @@
+import type { Item } from "@/lib/types";
 import { getTodayData } from "@/lib/today";
 import { formatTodayLabel } from "@/lib/format";
 import { AttentionCard } from "./components/AttentionCard";
 import { TimelineItem } from "./components/TimelineItem";
 import { EnableNotifications } from "./components/EnableNotifications";
+import { addGroupToCalendar, markGroupDone, ignoreGroup } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+// A skimmable preview of what's in a collapsed group, so deciding what to
+// do with a 12-item email doesn't require expanding it first.
+function groupPreview(items: Item[]): string {
+  const shown = items.slice(0, 2).map((i) => i.title);
+  const rest = items.length - shown.length;
+  return rest > 0 ? `${shown.join(" · ")} +${rest} more` : shown.join(" · ");
+}
 
 function EmptyBoard({ children }: { children: React.ReactNode }) {
   return (
@@ -72,9 +82,44 @@ export default async function TodayPage() {
                   From: {entry.group.label}
                   <span className="attn-group-count">{entry.group.items.length} items</span>
                 </summary>
+                <div className="attn-group-quickbar">
+                  <p className="attn-group-preview">{groupPreview(entry.group.items)}</p>
+                  <div className="attn-group-quickactions">
+                    <form action={addGroupToCalendar}>
+                      <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
+                      <button className="btn btn-primary" type="submit">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="4" width="18" height="17" rx="2" />
+                          <path d="M3 9h18M8 2v4M16 2v4M12 13v5M9.5 15.5h5" />
+                        </svg>
+                        Add to calendar
+                      </button>
+                    </form>
+                    <a
+                      className="btn btn-ghost"
+                      href={`https://mail.google.com/mail/u/0/#all/${entry.group.messageId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      View email
+                    </a>
+                    <form action={markGroupDone}>
+                      <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
+                      <button className="btn btn-ghost" type="submit">
+                        Done
+                      </button>
+                    </form>
+                    <form action={ignoreGroup}>
+                      <input type="hidden" name="gmail_message_id" value={entry.group.messageId} />
+                      <button className="btn btn-ghost" type="submit">
+                        Ignore
+                      </button>
+                    </form>
+                  </div>
+                </div>
                 <div className="attn-group-items">
                   {entry.group.items.map((item) => (
-                    <AttentionCard key={item.id} item={item} kid={kidById(item.kid_id)} />
+                    <AttentionCard key={item.id} item={item} kid={kidById(item.kid_id)} inGroup />
                   ))}
                 </div>
               </details>

@@ -2,6 +2,7 @@ import type { Item } from "./types";
 
 export interface AttentionGroup {
   label: string;
+  messageId: string;
   items: Item[];
 }
 
@@ -37,7 +38,7 @@ export function groupAttentionItems(
       emittedGroups.add(messageId);
       const groupItems = items.filter((i) => i.gmail_message_id === messageId);
       const label = subjectByMessageId.get(messageId) ?? groupItems[0].provenance_label;
-      entries.push({ kind: "group", group: { label, items: groupItems } });
+      entries.push({ kind: "group", group: { label, messageId, items: groupItems } });
     } else {
       entries.push({ kind: "single", item });
     }

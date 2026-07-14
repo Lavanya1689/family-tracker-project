@@ -33,10 +33,15 @@ export function AttentionCard({
   item,
   kid,
   isHero = false,
+  inGroup = false,
 }: {
   item: Item;
   kid: Pick<Kid, "name" | "color_key"> | null;
   isHero?: boolean;
+  // Rendered inside an expanded email group, where the source is already
+  // shown once at the group level — repeating the identical provenance
+  // line on every one of N items from the same email is pure noise.
+  inGroup?: boolean;
 }) {
   return (
     <div className={`attn${isHero ? " hero" : ""}`}>
@@ -51,10 +56,12 @@ export function AttentionCard({
       <div className="tl-meta">
         <KidChip kid={kid} />
       </div>
-      <div className="prov">
-        <SourceIcon sourceType={item.source_type} />
-        {item.provenance_label}
-      </div>
+      {!inGroup && (
+        <div className="prov">
+          <SourceIcon sourceType={item.source_type} />
+          {item.provenance_label}
+        </div>
+      )}
       <div className="attn-actions">
         <form action={addToCalendar}>
           <input type="hidden" name="id" value={item.id} />

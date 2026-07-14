@@ -59,6 +59,51 @@ async function dismissItem(formData: FormData, reason: "ignored" | "done") {
   revalidatePath("/lists");
 }
 
+// Bulk equivalents of the three actions above, scoped to every
+// still-needs_attention item from one email (a group's gmail_message_id) —
+// a detail-dense email (e.g. a 12-item swim team update) shouldn't require
+// clicking the same action 12 times when the parent wants to handle the
+// whole thing at once. Per-item actions inside the expanded group still
+// work individually for mixed handling.
+export async function addGroupToCalendar(formData: FormData) {
+  const messageId = formData.get("gmail_message_id");
+  if (typeof messageId !== "string") return;
+
+  const db = supabaseAdmin();
+  const { error } = await db
+    .from("items")
+    .update({ status: "scheduled", updated_at: new Date().toISOString() })
+    .eq("gmail_message_id", messageId)
+    .eq("status", "needs_attention");
+  if (error) throw error;
+  revalidatePath("/");
+  revalidatePath("/schedule");
+}
+
+export async function ignoreGroup(formData: FormData) {
+  await dismissGroup(formData, "ignored");
+}
+
+export async function markGroupDone(formData: FormData) {
+  await dismissGroup(formData, "done");
+}
+
+async function dismissGroup(formData: FormData, reason: "ignored" | "done") {
+  const messageId = formData.get("gmail_message_id");
+  if (typeof messageId !== "string") return;
+
+  const db = supabaseAdmin();
+  const { error } = await db
+    .from("items")
+    .update({ status: "handled", dismissal_reason: reason, updated_at: new Date().toISOString() })
+    .eq("gmail_message_id", messageId)
+    .eq("status", "needs_attention");
+  if (error) throw error;
+  revalidatePath("/");
+  revalidatePath("/schedule");
+  revalidatePath("/lists");
+}
+
 // Reverses a mistaken dismissal from the Handled log — back to needing
 // attention, as if it were freshly extracted.
 export async function undoHandled(formData: FormData) {
