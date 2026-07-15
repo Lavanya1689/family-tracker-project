@@ -2,10 +2,12 @@ import { supabaseAdmin } from "./supabase";
 import { sendPushToAll } from "./push";
 import { markLastRun } from "./settings";
 import { getSoleHouseholdId } from "./household";
+import { sendDailyDigestIfDue } from "./digest";
 
 export interface ReminderIngestResult {
   remindersDue: number;
   remindersNotified: number;
+  digestSent: boolean;
 }
 
 // Fires a push for every reminder whose remind_at has passed and hasn't
@@ -15,7 +17,7 @@ export interface ReminderIngestResult {
 // cron on its own.
 export async function ingestReminders(): Promise<ReminderIngestResult> {
   const db = supabaseAdmin();
-  const result: ReminderIngestResult = { remindersDue: 0, remindersNotified: 0 };
+  const result: ReminderIngestResult = { remindersDue: 0, remindersNotified: 0, digestSent: false };
   // Interim single-household lookup — see lib/household.ts's
   // getSoleHouseholdId for why this isn't a real per-household loop yet.
   const householdId = await getSoleHouseholdId();
@@ -47,6 +49,12 @@ export async function ingestReminders(): Promise<ReminderIngestResult> {
       // batch — it stays un-notified and gets retried next run.
       console.error(`Failed to notify reminder "${reminder.title}":`, err);
     }
+  }
+
+  try {
+    result.digestSent = await sendDailyDigestIfDue(householdId);
+  } catch (err) {
+    console.error("daily digest failed", err);
   }
 
   await markLastRun(householdId, "last_reminders_run_at");

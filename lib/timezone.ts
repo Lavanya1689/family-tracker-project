@@ -146,6 +146,14 @@ export function toIsoDateInTz(date: Date, timeZone: string = getAppTimeZone()): 
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+// Current hour (0-23) in the family's timezone — used to fire the daily
+// digest around a fixed local clock time (e.g. 9am) without hand-rolling
+// DST-aware UTC-offset math; the cron just checks local hour every 15 min.
+export function getLocalHour(date: Date = new Date(), timeZone: string = getAppTimeZone()): number {
+  const hourStr = date.toLocaleString("en-US", { timeZone, hour: "numeric", hour12: false });
+  return parseInt(hourStr, 10) % 24;
+}
+
 export function formatTimeInTz(dateTime: string, timeZone: string = getAppTimeZone()): string {
   const time = new Date(dateTime).toLocaleTimeString("en-US", {
     timeZone,

@@ -19,6 +19,10 @@
   --kidA-bg: #22303f;
   --kidB: #d598b4;
   --kidB-bg: #34232c;
+  --kidC: #a8bd7a;
+  --kidC-bg: #262e1c;
+  --kidD: #d99b80;
+  --kidD-bg: #34241c;
   --surface: #262b34;
   --canvas: #1c2027;
   --border: #383e4a;
@@ -46,6 +50,10 @@
     --kidA-bg: #dee7f0;
     --kidB: #8b5670;
     --kidB-bg: #f1e1e9;
+    --kidC: #6b7a3a;
+    --kidC-bg: #e9edd9;
+    --kidD: #a15c3e;
+    --kidD-bg: #f3e2d9;
     --surface: #fffffe;
     --canvas: #f1efe6;
     --border: #ddd9c8;
@@ -224,6 +232,37 @@ h3,
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+}
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.refresh-btn:active {
+  transform: scale(0.95);
+}
+.refresh-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.refresh-btn svg.spinning {
+  animation: refresh-spin 0.6s ease;
+}
+@keyframes refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .greeting {
@@ -679,6 +718,14 @@ h3,
   color: var(--kidB);
   background: var(--kidB-bg);
 }
+.kid-c {
+  color: var(--kidC);
+  background: var(--kidC-bg);
+}
+.kid-d {
+  color: var(--kidD);
+  background: var(--kidD-bg);
+}
 .dot {
   width: 7px;
   height: 7px;
@@ -689,6 +736,12 @@ h3,
 }
 .kid-b .dot {
   background: var(--kidB);
+}
+.kid-c .dot {
+  background: var(--kidC);
+}
+.kid-d .dot {
+  background: var(--kidD);
 }
 
 .tl-item {
@@ -1479,4 +1532,178 @@ button.task-row {
   .sub {
     display: block !important;
   }
+}
+
+/* Onboarding wizard — one focused step at a time (icon, eyebrow, headline,
+   body, then the actual control), not a dense settings form all at once. */
+.onboard-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 40px 24px 60px;
+}
+.onboard-dots {
+  display: flex;
+  gap: 6px;
+}
+.onboard-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.onboard-dot.active {
+  background: var(--brand);
+  width: 18px;
+  border-radius: 4px;
+}
+.onboard-dot.done {
+  background: var(--scheduled);
+}
+.onboard-step {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+.onboard-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-tint);
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+.onboard-icon svg {
+  width: 26px;
+  height: 26px;
+}
+.onboard-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.onboard-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+.onboard-body {
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+.onboard-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+.onboard-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.onboard-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.onboard-actions .btn {
+  justify-content: center;
+}
+.onboard-kid-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.onboard-kid-list .comment-delete {
+  margin-left: 2px;
+}
+
+/* Add-event FAB — bottom-left, mirroring the Ask Nestly bubble on the
+   right so the two floating actions don't collide. */
+.add-event-fab {
+  position: fixed;
+  left: 18px;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-pin, var(--shadow));
+  cursor: pointer;
+  z-index: 90;
+}
+.add-event-fab svg {
+  width: 24px;
+  height: 24px;
+}
+@media (min-width: 900px) {
+  .add-event-fab {
+    bottom: 24px;
+  }
+}
+
+.add-event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.add-event-kind {
+  display: flex;
+  gap: 6px;
+}
+.add-event-kind-option {
+  flex: 1;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 6px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--canvas);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.add-event-kind-option.active {
+  background: var(--brand-tint);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.add-event-row {
+  display: flex;
+  gap: 8px;
+}
+.add-event-row .comment-input {
+  flex: 1;
+}
+.add-event-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
 }

@@ -29,3 +29,7 @@ export function gmailProvenance(sender: string, receivedAt: Date, accountLabel?:
 export function icsProvenance(feedName: string): string {
   return `From ${feedName} calendar`;
 }
+
+export function manualProvenance(authorName: string): string {
+  return `Added by ${authorName}`;
+}

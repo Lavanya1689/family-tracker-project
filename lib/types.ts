@@ -6,7 +6,7 @@ export type SourceType = "gmail" | "ics" | "manual";
 export interface Kid {
   id: string;
   name: string;
-  color_key: "a" | "b";
+  color_key: "a" | "b" | "c" | "d";
   context: string | null;
 }
 

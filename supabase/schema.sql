@@ -51,15 +51,21 @@ create table if not exists household_invitations (
 
 -- ---------------------------------------------------------------------------
 -- kids: real names come from KIDS env config at seed time, never hardcoded.
--- color_key drives the per-kid UI color (blue/orange) from the prototype.
+-- color_key drives the per-kid marker-pen UI color. Four slots (a-d) —
+-- was capped at two ('a','b') from the original single-household seed
+-- data, which silently blocked a real third kid once families could add
+-- their own via /onboarding instead of raw SQL.
 -- ---------------------------------------------------------------------------
 create table if not exists kids (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  color_key text not null check (color_key in ('a', 'b')),
+  color_key text not null check (color_key in ('a', 'b', 'c', 'd')),
   context text, -- e.g. "2nd grade at May Watts Elementary" — helps Gemini attribute items
   created_at timestamptz not null default now()
 );
+
+alter table kids drop constraint if exists kids_color_key_check;
+alter table kids add constraint kids_color_key_check check (color_key in ('a', 'b', 'c', 'd'));
 
 alter table kids add column if not exists household_id uuid references households(id);
 create index if not exists kids_household_idx on kids (household_id);
@@ -335,6 +341,11 @@ create table if not exists app_settings (
 alter table app_settings add column if not exists last_gmail_sync_at timestamptz;
 alter table app_settings add column if not exists last_ics_sync_at timestamptz;
 alter table app_settings add column if not exists last_reminders_run_at timestamptz;
+-- Tracks the household's local calendar date (not a timestamp) the daily
+-- digest last went out for — piggybacks on the existing 15-min reminders
+-- cron rather than new infrastructure; the cron checks local hour == 9
+-- and this date to fire exactly once per day without DST-aware UTC math.
+alter table app_settings add column if not exists last_digest_sent_date date;
 
 alter table app_settings add column if not exists household_id uuid references households(id);
 

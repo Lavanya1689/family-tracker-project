@@ -266,3 +266,43 @@ feature spec. Do not build them yet, even partially.
   committed to a public repo). They must not sign in again until sent
   that invite, or they'll be routed into onboarding and create a second,
   wrong household.
+- 2026-07-15: Fixed a real bug found testing the invite flow live:
+  middleware.ts required a signed-in session for every path except
+  /login and /auth, but /invite/[token] is exactly how a brand-new person
+  accepts an invite *before* signing in — an unauthenticated click was
+  being redirected to /login before the invite cookie ever got set,
+  silently defeating the whole flow. Added /invite to the matcher's
+  exclusion list.
+- 2026-07-15 (later): Built a proper multi-step "Set up your family"
+  onboarding wizard (app/onboarding/page.tsx) — name, then add kids,
+  then connect Gmail (with plain-language consent copy: what's read,
+  what's stored, that it's per-person and optional), then invite your
+  partner — replacing the old one-field "create a household" form.
+  Modeled on real onboarding flows from Cozi and Maple (screenshots the
+  user pulled up live), reimplemented in Nestly's own visual language
+  (icon + eyebrow + headline + body + CTA per step), not copied.
+  Prerequisite: kids finally have a real UI (lib/kids.ts, addKidAction/
+  deleteKidAction) — previously only addable via raw SQL since day one.
+  That surfaced a latent bug: kids.color_key was hard-capped at ('a','b')
+  from the original single-household seed data, silently blocking a real
+  third kid; expanded to 4 slots (a-d) with 2 new marker-pen CSS tokens
+  (--kidC olive, --kidD rust).
+  Also added, same session: a manual "Add event" feature (AddEventModal
+  component, addManualItem action) — Nestly previously had zero way to
+  add anything without an email or ICS feed triggering it, a real gap
+  once compared against Cozi/Maple's manual-entry-first design. A 9am
+  daily digest push (lib/digest.ts), piggybacked on the existing 15-min
+  reminders cron rather than new infrastructure — checks local hour via
+  a new getLocalHour() timezone helper (DST-safe, no UTC-offset math)
+  plus a per-household "already sent today" date guard so only the first
+  cron run inside the 9 o'clock hour actually sends. And a refresh
+  button on Today (RefreshButton.tsx, router.refresh()) after the user
+  asked why nothing updates without a manual reload.
+  Diagnosed live during this same session: Gmail sync had silently
+  stopped (invalid_grant/token expired) — root cause is Google's
+  OAuth "Testing" publish status auto-expiring refresh tokens after 7
+  days regardless of activity, not a code bug; the only real fixes are
+  periodic re-auth or pursuing Google's app verification to leave
+  Testing status (not done). Unrelated to the auth/household work
+  despite surfacing in the same conversation — Gmail reading uses its
+  own separate OAuth grant (lib/google.ts) from the app's own login.

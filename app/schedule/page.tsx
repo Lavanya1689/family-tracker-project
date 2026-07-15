@@ -23,10 +23,16 @@ function toDateParam(date: Date): string {
   return toIsoDateInTz(date);
 }
 
-function eventBarColor(item: Item, kidColorKey: "a" | "b" | null): string {
+const KID_COLOR_VARS: Record<string, string> = {
+  a: "var(--kidA)",
+  b: "var(--kidB)",
+  c: "var(--kidC)",
+  d: "var(--kidD)",
+};
+
+function eventBarColor(item: Item, kidColorKey: Kid["color_key"] | null): string {
   if (item.kind !== "event") return "var(--urgent)";
-  if (kidColorKey === "a") return "var(--kidA)";
-  if (kidColorKey === "b") return "var(--kidB)";
+  if (kidColorKey && KID_COLOR_VARS[kidColorKey]) return KID_COLOR_VARS[kidColorKey];
   return "var(--ink-faint)";
 }
 

@@ -7,6 +7,8 @@ import { localToUtcIso } from "@/lib/timezone";
 import { sendPushToAll, sendPushToOthers } from "@/lib/push";
 import { supabaseServer } from "@/lib/supabase-server";
 import { createHousehold, createInvitation, getCurrentHouseholdId } from "@/lib/household";
+import { createKid, deleteKid } from "@/lib/kids";
+import { manualProvenance } from "@/lib/provenance";
 
 // Moves an item from "needs attention" onto the calendar: status becomes
 // "scheduled" (same status ICS-sourced events already use), which both
@@ -377,7 +379,7 @@ export async function createHouseholdAction(formData: FormData) {
   if (!user?.email) return;
 
   await createHousehold(name.trim(), user.email);
-  redirect("/");
+  redirect("/onboarding?step=2");
 }
 
 // Returns the new invite's token (not a URL — the client component
@@ -396,4 +398,88 @@ export async function createInviteAction(): Promise<{ token: string } | { error:
 
   const token = await createInvitation(householdId, user.email);
   return { token };
+}
+
+export async function addKidAction(formData: FormData) {
+  const name = formData.get("name");
+  const context = formData.get("context");
+  if (typeof name !== "string" || name.trim().length === 0) return;
+
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) return;
+
+  await createKid(householdId, name.trim(), typeof context === "string" && context.trim() ? context.trim() : null);
+  revalidatePath("/onboarding");
+  revalidatePath("/settings");
+}
+
+export async function deleteKidAction(formData: FormData) {
+  const id = formData.get("id");
+  if (typeof id !== "string") return;
+
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) return;
+
+  await deleteKid(householdId, id);
+  revalidatePath("/onboarding");
+  revalidatePath("/settings");
+}
+
+// Manual event/deadline/action-item creation — the app previously had no
+// way to add anything without an email or ICS feed triggering it. Notifies
+// the other household member the same way an extracted item would.
+export async function addManualItem(formData: FormData) {
+  const title = formData.get("title");
+  const kind = formData.get("kind");
+  const kidId = formData.get("kid_id");
+  const notes = formData.get("notes");
+  const dateStr = formData.get("date");
+  const timeStr = formData.get("time");
+  const allDay = formData.get("all_day") === "true";
+
+  if (typeof title !== "string" || title.trim().length === 0) return;
+  if (kind !== "event" && kind !== "deadline" && kind !== "action_item") return;
+  if (typeof dateStr !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return;
+
+  const householdId = await getCurrentHouseholdId();
+  if (!householdId) return;
+
+  const when = allDay || typeof timeStr !== "string" || !timeStr
+    ? localToUtcIso(`${dateStr}T00:00:00`)
+    : localToUtcIso(`${dateStr}T${timeStr}:00`);
+
+  const db = supabaseAdmin();
+  const { error } = await db.from("items").insert({
+    household_id: householdId,
+    kind,
+    title: title.trim(),
+    description: typeof notes === "string" && notes.trim().length > 0 ? notes.trim() : null,
+    kid_id: typeof kidId === "string" && kidId.length > 0 ? kidId : null,
+    starts_at: kind === "event" ? when : null,
+    all_day: allDay,
+    due_at: kind !== "event" ? when : null,
+    status: kind === "event" ? "scheduled" : "needs_attention",
+    source_type: "manual",
+    provenance_label: manualProvenance(user.email.split("@")[0]),
+  });
+  if (error) throw error;
+
+  try {
+    await sendPushToOthers(user.email, {
+      title: `${user.email.split("@")[0]} added something new`,
+      body: title.trim(),
+      url: "/",
+    });
+  } catch (err) {
+    console.error("manual item push notification failed", err);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/schedule");
 }

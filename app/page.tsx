@@ -11,6 +11,8 @@ import { AttentionGroupCard } from "./components/AttentionGroupCard";
 import { CommentPanel } from "./components/CommentPanel";
 import { TimelineItem } from "./components/TimelineItem";
 import { EnableNotifications } from "./components/EnableNotifications";
+import { RefreshButton } from "./components/RefreshButton";
+import { AddEventModal } from "./components/AddEventModal";
 import { addGroupToCalendar, markGroupDone, ignoreGroup } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +88,10 @@ export default async function TodayPage() {
         <div>
           <h1 className="greeting">Good morning</h1>
         </div>
-        <EnableNotifications />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <RefreshButton />
+          <EnableNotifications />
+        </div>
       </div>
       <p className="subgreet">
         Nestly read <strong>{emailsReadRecently}</strong> emails recently.{" "}
@@ -196,6 +201,7 @@ export default async function TodayPage() {
           ))}
         </div>
       </div>
+      <AddEventModal kids={kids} />
     </>
   );
 }
