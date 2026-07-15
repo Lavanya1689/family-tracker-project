@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getGeminiCustomInstructions, getJobStatus } from "@/lib/settings";
 import { getCurrentHouseholdId, getHouseholdMembers } from "@/lib/household";
+import { getKidsByHousehold } from "@/lib/kids";
 import { formatRelativeTime } from "@/lib/format";
-import { updateGeminiInstructions } from "../actions";
+import { updateGeminiInstructions, addKidAction, deleteKidAction } from "../actions";
 import { supabaseServer } from "@/lib/supabase-server";
 import { EnableNotifications } from "../components/EnableNotifications";
 import { TestNotificationButton } from "../components/TestNotificationButton";
@@ -14,10 +15,11 @@ export default async function SettingsPage() {
   const householdId = await getCurrentHouseholdId();
   if (!householdId) redirect("/onboarding");
 
-  const [instructions, status, members] = await Promise.all([
+  const [instructions, status, members, kids] = await Promise.all([
     getGeminiCustomInstructions(householdId),
     getJobStatus(householdId),
     getHouseholdMembers(householdId),
+    getKidsByHousehold(householdId),
   ]);
   const supabase = await supabaseServer();
   const {
@@ -56,6 +58,42 @@ export default async function SettingsPage() {
           ))}
         </div>
         <InviteButton />
+        <p className="attn-body" style={{ marginTop: 14, fontSize: 12.5 }}>
+          Want to connect another parent&apos;s Gmail for email scanning?{" "}
+          <a href="/onboarding?step=3" style={{ color: "var(--brand)" }}>
+            Go to the Gmail connect step
+          </a>
+          .
+        </p>
+      </div>
+
+      <div className="list-section" style={{ maxWidth: 640, marginBottom: 20 }}>
+        <div className="list-section-head">
+          <span className="list-section-title">Kids</span>
+        </div>
+        {kids.length > 0 && (
+          <ul className="onboard-kid-list" style={{ justifyContent: "flex-start", marginBottom: 14 }}>
+            {kids.map((k) => (
+              <li key={k.id} className={`kid kid-${k.color_key}`}>
+                <span className="dot" />
+                {k.name}
+                <form action={deleteKidAction} style={{ display: "inline" }}>
+                  <input type="hidden" name="id" value={k.id} />
+                  <button type="submit" className="comment-delete" aria-label={`Remove ${k.name}`}>
+                    ✕
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form action={addKidAction} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input type="text" name="name" placeholder="Kid's name" className="comment-input" style={{ maxWidth: 200 }} required />
+          <input type="text" name="context" placeholder="School/daycare (optional)" className="comment-input" style={{ maxWidth: 240 }} />
+          <button className="btn btn-outline" type="submit">
+            Add kid
+          </button>
+        </form>
       </div>
 
       <div className="list-section" style={{ maxWidth: 640, marginBottom: 20 }}>
