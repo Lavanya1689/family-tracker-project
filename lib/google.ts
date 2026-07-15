@@ -122,57 +122,66 @@ export async function fetchCandidateEmails(days: number): Promise<EmailCandidate
   const results: EmailCandidate[] = [];
 
   for (const account of accounts) {
-    const auth = getAuthorizedClient(account.refresh_token);
-    const gmail = google.gmail({ version: "v1", auth });
+    // One account's dead/expired refresh token (e.g. the 7-day expiry
+    // Google enforces while the OAuth app is in "Testing" mode) must not
+    // block every other properly-connected account's sync — this used to
+    // throw here and abort the whole batch, so a single stale connection
+    // silently stopped syncing for everyone, not just its own owner.
+    try {
+      const auth = getAuthorizedClient(account.refresh_token);
+      const gmail = google.gmail({ version: "v1", auth });
 
-    const list = await gmail.users.messages.list({
-      userId: "me",
-      q: `in:inbox newer_than:${days}d`,
-      maxResults: 50,
-    });
-
-    const messages = (list.data.messages ?? []).filter((m) => m.id);
-
-    const candidates = await mapWithConcurrency(messages, 10, async (msg) => {
-      const meta = await gmail.users.messages.get({
+      const list = await gmail.users.messages.list({
         userId: "me",
-        id: msg.id!,
-        format: "metadata",
-        metadataHeaders: ["From", "Subject", "Date", "Message-ID", "List-Unsubscribe"],
+        q: `in:inbox newer_than:${days}d`,
+        maxResults: 50,
       });
 
-      const headers = meta.data.payload?.headers ?? [];
-      const sender = headers.find((h) => h.name === "From")?.value ?? "";
-      const subject = headers.find((h) => h.name === "Subject")?.value ?? "(no subject)";
-      const dateHeader = headers.find((h) => h.name === "Date")?.value;
-      const receivedAt = dateHeader ? new Date(dateHeader) : new Date();
-      // The RFC822 Message-ID header is assigned by the sending server and
-      // shared across every recipient's copy — unlike Gmail's own message
-      // id, which is mailbox-scoped — so it catches the same email landing
-      // in more than one connected account (e.g. both parents CC'd).
-      const rfc822MessageId = headers.find((h) => h.name === "Message-ID")?.value ?? null;
-      // List-Unsubscribe is near-universal on bulk/marketing mail and
-      // essentially never present on personal or school email — a much
-      // stronger "this is not actionable family mail" signal than any
-      // keyword, and it's checked before the keyword filter even runs.
-      const isBulkMail = headers.some((h) => h.name === "List-Unsubscribe");
+      const messages = (list.data.messages ?? []).filter((m) => m.id);
 
-      const candidate: EmailCandidate = {
-        gmailMessageId: msg.id!,
-        rfc822MessageId,
-        accountEmail: account.email,
-        accountLabel: account.label,
-        refreshToken: account.refresh_token,
-        sender,
-        subject,
-        snippet: meta.data.snippet ?? "",
-        receivedAt,
-        isBulkMail,
-      };
-      return candidate;
-    });
+      const candidates = await mapWithConcurrency(messages, 10, async (msg) => {
+        const meta = await gmail.users.messages.get({
+          userId: "me",
+          id: msg.id!,
+          format: "metadata",
+          metadataHeaders: ["From", "Subject", "Date", "Message-ID", "List-Unsubscribe"],
+        });
 
-    results.push(...candidates);
+        const headers = meta.data.payload?.headers ?? [];
+        const sender = headers.find((h) => h.name === "From")?.value ?? "";
+        const subject = headers.find((h) => h.name === "Subject")?.value ?? "(no subject)";
+        const dateHeader = headers.find((h) => h.name === "Date")?.value;
+        const receivedAt = dateHeader ? new Date(dateHeader) : new Date();
+        // The RFC822 Message-ID header is assigned by the sending server and
+        // shared across every recipient's copy — unlike Gmail's own message
+        // id, which is mailbox-scoped — so it catches the same email landing
+        // in more than one connected account (e.g. both parents CC'd).
+        const rfc822MessageId = headers.find((h) => h.name === "Message-ID")?.value ?? null;
+        // List-Unsubscribe is near-universal on bulk/marketing mail and
+        // essentially never present on personal or school email — a much
+        // stronger "this is not actionable family mail" signal than any
+        // keyword, and it's checked before the keyword filter even runs.
+        const isBulkMail = headers.some((h) => h.name === "List-Unsubscribe");
+
+        const candidate: EmailCandidate = {
+          gmailMessageId: msg.id!,
+          rfc822MessageId,
+          accountEmail: account.email,
+          accountLabel: account.label,
+          refreshToken: account.refresh_token,
+          sender,
+          subject,
+          snippet: meta.data.snippet ?? "",
+          receivedAt,
+          isBulkMail,
+        };
+        return candidate;
+      });
+
+      results.push(...candidates);
+    } catch (err) {
+      console.error(`Failed to fetch email for connected account ${account.email}:`, err);
+    }
   }
 
   return results;
