@@ -5,13 +5,19 @@ import { getLocalHour, toIsoDateInTz } from "./timezone";
 const DIGEST_HOUR = 9;
 
 // Piggybacks on the existing 15-min reminders cron rather than new
-// infrastructure — checks local hour == 9 (DST-safe, no UTC-offset math)
-// and a per-household "already sent today" date guard, so of the ~4 cron
-// runs that land inside the 9 o'clock hour, only the first one actually
-// sends. Returns whether it actually sent, purely so the caller can log it.
+// infrastructure — checks local hour >= 9 (DST-safe, no UTC-offset math)
+// and a per-household "already sent today" date guard, so the first cron
+// run each day at or after 9am sends it, whichever run that turns out to
+// be. Deliberately not an exact-hour match: GitHub Actions' free-tier
+// `schedule` trigger is only a best-effort hint, not a guarantee — it
+// silently skips or delays runs by hours during high load, so a run isn't
+// guaranteed to ever land inside the 9 o'clock hour specifically (this bit
+// Nestly for real on 2026-07-16: cron gapped from 12:59 to 15:09 UTC,
+// skipping 9am Chicago entirely, and the digest never fired that day).
+// Returns whether it actually sent, purely so the caller can log it.
 export async function sendDailyDigestIfDue(householdId: string): Promise<boolean> {
   const now = new Date();
-  if (getLocalHour(now) !== DIGEST_HOUR) return false;
+  if (getLocalHour(now) < DIGEST_HOUR) return false;
 
   const today = toIsoDateInTz(now);
   const db = supabaseAdmin();
