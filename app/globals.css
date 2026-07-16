@@ -518,6 +518,13 @@ h3,
   margin-top: 2px;
   line-height: 1.4;
 }
+.mention {
+  color: var(--brand);
+  font-weight: 600;
+  background: var(--brand-tint);
+  border-radius: 4px;
+  padding: 0 3px;
+}
 .comment-delete-form {
   margin-left: auto;
 }
@@ -551,6 +558,43 @@ h3,
 }
 .comment-input:disabled {
   opacity: 0.6;
+}
+.comment-input-wrap {
+  position: relative;
+  flex: 1;
+}
+.comment-input-wrap .comment-input {
+  width: 100%;
+}
+.mention-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  z-index: 10;
+  min-width: 140px;
+}
+.mention-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+.mention-option:hover {
+  background: var(--seg-bg);
+  color: var(--brand);
 }
 .comment-sent {
   font-size: 11.5px;

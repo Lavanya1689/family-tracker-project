@@ -38,6 +38,7 @@ export function AttentionCard({
   inGroup = false,
   comments = [],
   currentUserEmail = "",
+  memberEmails = [],
 }: {
   item: Item;
   kid: Pick<Kid, "name" | "color_key"> | null;
@@ -48,6 +49,7 @@ export function AttentionCard({
   inGroup?: boolean;
   comments?: ItemComment[];
   currentUserEmail?: string;
+  memberEmails?: string[];
 }) {
   return (
     <div className={`attn${isHero ? " hero" : ""}`}>
@@ -119,6 +121,7 @@ export function AttentionCard({
             itemTitle={item.title}
             comments={comments}
             currentUserEmail={currentUserEmail}
+            memberEmails={memberEmails}
           />
         </div>
       )}

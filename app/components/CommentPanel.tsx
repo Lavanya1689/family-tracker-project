@@ -2,23 +2,50 @@
 
 import { useState, useEffect } from "react";
 import type { ItemComment } from "@/lib/comments";
-import { authorDisplayName } from "@/lib/comment-format";
+import { authorDisplayName, extractMentionTokens } from "@/lib/comment-format";
 import { formatRelativeTime } from "@/lib/format";
 import { CommentForm } from "./CommentForm";
 import { deleteComment } from "../actions";
+
+// Splits a comment body into plain text and highlighted "@name" spans, for
+// every @token that actually matches a real household member (so a stray
+// "@" — an email address someone pasted in, say — is left as plain text).
+function renderCommentBody(body: string, memberNames: Set<string>) {
+  const tokens = extractMentionTokens(body);
+  if (tokens.length === 0 || ![...tokens].some((t) => memberNames.has(t.toLowerCase()))) {
+    return body;
+  }
+  const parts = body.split(/(@[a-zA-Z0-9_.+-]+)/g);
+  return parts.map((part, i) => {
+    const isMention = part.startsWith("@") && memberNames.has(part.slice(1).toLowerCase());
+    return isMention ? (
+      <span className="mention" key={i}>
+        {part}
+      </span>
+    ) : (
+      part
+    );
+  });
+}
 
 export function CommentPanel({
   itemId,
   itemTitle,
   comments,
   currentUserEmail,
+  memberEmails = [],
 }: {
   itemId: string;
   itemTitle: string;
   comments: ItemComment[];
   currentUserEmail: string;
+  // Every household member's email (including the current user) — used to
+  // both power the @mention autocomplete (self excluded) and to decide
+  // which @tokens in past comments get highlighted.
+  memberEmails?: string[];
 }) {
   const [open, setOpen] = useState(false);
+  const memberNames = new Set(memberEmails.map((e) => authorDisplayName(e).toLowerCase()));
 
   // Esc closes it too, matching normal modal behavior.
   useEffect(() => {
@@ -66,11 +93,15 @@ export function CommentPanel({
                       </form>
                     )}
                   </div>
-                  <p className="comment-body">{c.body}</p>
+                  <p className="comment-body">{renderCommentBody(c.body, memberNames)}</p>
                 </div>
               ))}
             </div>
-            <CommentForm itemId={itemId} itemTitle={itemTitle} />
+            <CommentForm
+              itemId={itemId}
+              itemTitle={itemTitle}
+              memberEmails={memberEmails.filter((e) => e !== currentUserEmail)}
+            />
           </div>
         </div>
       )}

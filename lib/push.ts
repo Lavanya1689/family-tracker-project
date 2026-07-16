@@ -66,3 +66,15 @@ export async function sendPushToOthers(excludeEmail: string, payload: PushPayloa
   const others = (subs ?? []).filter((s) => s.user_email !== excludeEmail);
   await sendToSubscriptions(others, payload);
 }
+
+// Sends only to the given users' devices — e.g. an @mention in a comment
+// should notify the person named, not the whole household. Falls back to
+// notifying nobody (not everybody) if the list is empty; callers should
+// use sendPushToOthers for the broadcast case instead of passing [] here.
+export async function sendPushToUsers(emails: string[], payload: PushPayload) {
+  if (emails.length === 0) return;
+  const db = supabaseAdmin();
+  const { data: subs, error } = await db.from("push_subscriptions").select("*").in("user_email", emails);
+  if (error) throw error;
+  await sendToSubscriptions(subs ?? [], payload);
+}

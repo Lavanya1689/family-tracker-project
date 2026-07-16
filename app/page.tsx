@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Item } from "@/lib/types";
 import type { ItemComment } from "@/lib/comments";
-import { getCurrentHouseholdId } from "@/lib/household";
+import { getCurrentHouseholdId, getHouseholdMembers } from "@/lib/household";
 import { getTodayData } from "@/lib/today";
 import { formatTodayLabel } from "@/lib/format";
 import { getCommentsByItemIds } from "@/lib/comments";
@@ -67,14 +67,16 @@ export default async function TodayPage() {
   const attentionItemIds = attentionEntries.flatMap((e) =>
     e.kind === "single" ? [e.item.id] : e.group.items.map((i) => i.id)
   );
-  const [commentsByItem, supabase] = await Promise.all([
+  const [commentsByItem, members, supabase] = await Promise.all([
     getCommentsByItemIds(attentionItemIds),
+    getHouseholdMembers(householdId),
     supabaseServer(),
   ]);
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const currentUserEmail = user?.email ?? "";
+  const memberEmails = members.map((m) => m.user_email);
 
   const attentionCount = attentionEntries.reduce(
     (n, e) => n + (e.kind === "single" ? 1 : e.group.items.length),
@@ -120,6 +122,7 @@ export default async function TodayPage() {
                 isHero={i === 0}
                 comments={commentsByItem.get(entry.item.id) ?? []}
                 currentUserEmail={currentUserEmail}
+                memberEmails={memberEmails}
               />
             ) : (
               <AttentionGroupCard
@@ -173,6 +176,7 @@ export default async function TodayPage() {
                         itemTitle={entry.group.label}
                         comments={mergeGroupComments(entry.group.items, commentsByItem)}
                         currentUserEmail={currentUserEmail}
+                        memberEmails={memberEmails}
                       />
                     </div>
                   </div>

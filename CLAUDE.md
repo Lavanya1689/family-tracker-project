@@ -306,3 +306,23 @@ feature spec. Do not build them yet, even partially.
   Testing status (not done). Unrelated to the auth/household work
   despite surfacing in the same conversation — Gmail reading uses its
   own separate OAuth grant (lib/google.ts) from the app's own login.
+- 2026-07-16: Found and fixed the 9am digest never actually firing —
+  `getLocalHour(now) !== 9` required a cron run to land inside the exact
+  9 o'clock hour, but the GitHub Actions `schedule` trigger backing the
+  15-min reminders cron (reminders-cron.yml) is only best-effort: GitHub
+  deprioritizes/delays scheduled runs on low-traffic repos, and today's
+  runs actually landed roughly 1-3 hours apart (confirmed via the Actions
+  API — a real gap from 12:59 to 15:09 UTC swallowed 9am Chicago whole).
+  Changed the guard to `< 9` (fire on the first run at-or-after 9am, not
+  only inside that hour) so a sparse cron still catches up same-day
+  instead of silently skipping the digest. Also implemented Phase E of
+  the household plan (@mentions in comments, previously deferred):
+  typing "@name" in a comment (CommentForm.tsx) autocompletes against the
+  item's household members (display name = email's local part, same as
+  already shown next to each comment) and, on submit, addComment resolves
+  those tokens (lib/comment-format.ts's resolveMentions) to notify only
+  the people actually named (new sendPushToUsers in lib/push.ts) instead
+  of the previous broadcast-to-everyone-else; a comment with no
+  recognized mention keeps the old broadcast behavior unchanged. Past
+  comments render recognized @tokens highlighted (CommentPanel.tsx);
+  unrecognized "@"s (e.g. a pasted email address) are left as plain text.

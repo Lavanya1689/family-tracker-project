@@ -4,11 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
 import { localToUtcIso } from "@/lib/timezone";
-import { sendPushToAll, sendPushToOthers } from "@/lib/push";
+import { sendPushToAll, sendPushToOthers, sendPushToUsers } from "@/lib/push";
 import { supabaseServer } from "@/lib/supabase-server";
-import { createHousehold, createInvitation, getCurrentHouseholdId } from "@/lib/household";
+import { createHousehold, createInvitation, getCurrentHouseholdId, getHouseholdMembers } from "@/lib/household";
 import { createKid, deleteKid } from "@/lib/kids";
 import { manualProvenance } from "@/lib/provenance";
+import { resolveMentions } from "@/lib/comment-format";
 
 // Moves an item from "needs attention" onto the calendar: status becomes
 // "scheduled" (same status ICS-sourced events already use), which both
@@ -310,10 +311,13 @@ export async function updateGeminiInstructions(formData: FormData) {
   revalidatePath("/settings");
 }
 
-// Posts a comment on an item and notifies everyone *except* the author —
-// so typing "can you grab this?" pings the other parent's phone, not your
-// own. A failed push must never fail the comment itself; it's already
-// saved regardless of whether the notification goes out.
+// Posts a comment on an item and notifies people about it — an @name
+// mention (matched against the household's member list) notifies only the
+// people actually named, so "@harsha can you grab this?" pings just his
+// phone; a comment with no recognized mention falls back to the previous
+// broadcast-to-everyone-else behavior. A failed push must never fail the
+// comment itself; it's already saved regardless of whether the
+// notification goes out.
 export async function addComment(formData: FormData) {
   const itemId = formData.get("item_id");
   const body = formData.get("body");
@@ -327,21 +331,38 @@ export async function addComment(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user?.email) return;
 
+  const trimmedBody = body.trim();
   const db = supabaseAdmin();
   const { error } = await db.from("item_comments").insert({
     item_id: itemId,
     author_email: user.email,
-    body: body.trim(),
+    body: trimmedBody,
   });
   if (error) throw error;
 
   try {
     const title = typeof itemTitle === "string" && itemTitle.length > 0 ? itemTitle : "an item";
-    await sendPushToOthers(user.email, {
-      title: `New comment from ${user.email.split("@")[0]}`,
-      body: `${title}: ${body.trim().slice(0, 120)}`,
-      url: "/",
-    });
+    const authorName = user.email.split("@")[0];
+    const householdId = await getCurrentHouseholdId();
+    const members = householdId ? await getHouseholdMembers(householdId) : [];
+    const mentioned = resolveMentions(
+      trimmedBody,
+      members.map((m) => m.user_email).filter((email) => email !== user.email)
+    );
+
+    if (mentioned.length > 0) {
+      await sendPushToUsers(mentioned, {
+        title: `${authorName} mentioned you`,
+        body: `${title}: ${trimmedBody.slice(0, 120)}`,
+        url: "/",
+      });
+    } else {
+      await sendPushToOthers(user.email, {
+        title: `New comment from ${authorName}`,
+        body: `${title}: ${trimmedBody.slice(0, 120)}`,
+        url: "/",
+      });
+    }
   } catch (err) {
     console.error("comment push notification failed", err);
   }
