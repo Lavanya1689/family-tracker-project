@@ -400,3 +400,16 @@ feature spec. Do not build them yet, even partially.
   gmail_message_id -> account_email (gmail_messages already stores
   this) and the link uses that account's email in place of the index,
   which Gmail's URL accepts directly.
+- 2026-07-20 (later still): Added an in-app email preview — clicking a
+  Needs Attention card's title/description now fetches the real email
+  body live from Gmail (app/actions.ts's getEmailPreview, reusing
+  lib/google.ts's fetchEmailContent that extraction already uses) and
+  shows it in a modal, instead of requiring a trip to Gmail just to
+  read the source. Deliberately never persisted anywhere — fetched
+  fresh on each click, nothing new written to gmail_messages — so this
+  doesn't touch the hard rule against storing raw email bodies.
+  "Open in Gmail" stays as a fallback for replying or viewing
+  attachments (attachment filenames are shown, not rendered inline).
+  Not yet wired up on the collapsed group-email header (only on
+  individual item cards, including ones inside an expanded group) —
+  natural follow-up if wanted.
