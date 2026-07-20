@@ -192,6 +192,11 @@ create index if not exists items_kid_id_idx on items (kid_id);
 alter table items add column if not exists household_id uuid references households(id);
 create index if not exists items_household_idx on items (household_id);
 
+-- Set once an "starting soon" push has gone out for a timed event, so the
+-- ~hourly cron doesn't re-alert every run while an event is inside its
+-- lead-time window. See lib/event-alerts.ts.
+alter table items add column if not exists start_alert_sent_at timestamptz;
+
 -- ---------------------------------------------------------------------------
 -- push_subscriptions: browser Push API subscriptions for PWA notifications.
 -- One household, but multiple devices (each parent's phone) can subscribe.

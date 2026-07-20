@@ -3,11 +3,13 @@ import { sendPushToAll } from "./push";
 import { markLastRun } from "./settings";
 import { getSoleHouseholdId } from "./household";
 import { sendDailyDigestIfDue } from "./digest";
+import { sendUpcomingEventAlerts } from "./event-alerts";
 
 export interface ReminderIngestResult {
   remindersDue: number;
   remindersNotified: number;
   digestSent: boolean;
+  eventAlertsSent: number;
 }
 
 // Fires a push for every reminder whose remind_at has passed and hasn't
@@ -17,7 +19,12 @@ export interface ReminderIngestResult {
 // cron on its own.
 export async function ingestReminders(): Promise<ReminderIngestResult> {
   const db = supabaseAdmin();
-  const result: ReminderIngestResult = { remindersDue: 0, remindersNotified: 0, digestSent: false };
+  const result: ReminderIngestResult = {
+    remindersDue: 0,
+    remindersNotified: 0,
+    digestSent: false,
+    eventAlertsSent: 0,
+  };
   // Interim single-household lookup — see lib/household.ts's
   // getSoleHouseholdId for why this isn't a real per-household loop yet.
   const householdId = await getSoleHouseholdId();
@@ -55,6 +62,12 @@ export async function ingestReminders(): Promise<ReminderIngestResult> {
     result.digestSent = await sendDailyDigestIfDue(householdId);
   } catch (err) {
     console.error("daily digest failed", err);
+  }
+
+  try {
+    result.eventAlertsSent = (await sendUpcomingEventAlerts(householdId)).alertsSent;
+  } catch (err) {
+    console.error("upcoming-event alerts failed", err);
   }
 
   await markLastRun(householdId, "last_reminders_run_at");

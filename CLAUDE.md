@@ -338,3 +338,22 @@ feature spec. Do not build them yet, even partially.
   dedupe on message id/uid. Per the digest bug found 2026-07-16, GitHub's
   `schedule` trigger is only best-effort on low-traffic repos and can lag
   by an hour or more, so this is "roughly hourly," not exact.
+- 2026-07-20 (same day): Added upcoming-event push alerts (lib/event-
+  alerts.ts) — a timed, scheduled event (all_day=false) now pushes
+  "Starting soon: X" once its start falls within 60 minutes, piggybacked
+  on the same ~hourly reminders cron as the digest (no new
+  infrastructure). New items.start_alert_sent_at column prevents
+  re-alerting every cron run while inside that window; a 4-hour stale
+  cutoff on the other side stops a long cron gap from surfacing alerts
+  for events already well over. All-day events are intentionally
+  excluded — no specific time to count down to, and they already surface
+  on Today/the calendar feed. Also found and fixed why Evite reminder
+  emails were never showing up as items at all: they carry a
+  List-Unsubscribe header like any mass sender, so the bulk-mail gate
+  (the one pre-Gemini filter that's supposed to only catch marketing
+  spam) was silently dropping them before Gemini ever got a chance to
+  judge relevance — confirmed via gmail_messages having zero record of
+  any evite.com sender ever, even as "skipped." Fixed the same way
+  school senders already bypass that gate: added evite.com to
+  WATCH_SENDERS (must also be updated in Vercel's env vars, not just
+  .env.local, to take effect in production).
