@@ -47,6 +47,12 @@ interface EmailForExtraction {
   receivedAt: Date;
   body: string;
   attachments?: EmailAttachment[];
+  // Whether the email carries a List-Unsubscribe header — true for pure
+  // marketing/newsletters, but also for plenty of legitimate mass senders
+  // (Evite, class mailing lists, PTA blasts), so it's passed as one signal
+  // for the model to weigh, not a pre-filter that excludes the email
+  // outright.
+  isBulkMail?: boolean;
 }
 
 // Cheap pre-filter so we skip calling Gemini on emails that are obviously
@@ -116,6 +122,14 @@ Rules:
   check it themselves.
 - Return an empty items array if nothing actionable is in the email.
 ${
+  email.isBulkMail
+    ? `\nThis email has a "List-Unsubscribe" header — true for plain marketing/
+newsletters, but also for plenty of genuinely relevant mass mail (Evite and
+similar invitation services, class or PTA mailing lists, activity signup
+systems). Don't treat this alone as a reason to skip it — judge the actual
+content on its merits like any other email, using the rules above.\n`
+    : ""
+}${
   customInstructions
     ? `\nAdditional instructions from this family, on top of everything above (these refine judgment, they don't replace the core rules — e.g. never store raw bodies, still return valid JSON matching the schema):\n"""\n${customInstructions.slice(0, 2000)}\n"""\n`
     : ""

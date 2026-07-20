@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "./supabase";
 import { fetchCandidateEmails, fetchEmailContent } from "./google";
 import { extractItems, looksSkippable } from "./gemini";
-import { getWatchSenders, getKidsConfig, senderIsWatched } from "./env";
+import { getKidsConfig } from "./env";
 import { gmailProvenance } from "./provenance";
 import { localToUtcIso } from "./timezone";
 import { sendPushToAll } from "./push";
@@ -18,24 +18,27 @@ function toUtc(naive: string | undefined): string | null {
 export interface GmailIngestResult {
   emailsSeen: number;
   emailsSkippedAlreadyProcessed: number;
-  emailsSkippedNotRelevant: number;
   emailsProcessed: number;
   emailsFailed: number;
   itemsCreated: number;
 }
 
 // Fetches the last `days` days of primary-inbox mail across every connected
-// Google account. WATCH_SENDERS mail always goes to Gemini. Everything else
-// also goes to Gemini — its own extraction judgment (already instructed to
-// return nothing for non-actionable content) decides relevance, not a rigid
-// keyword list — except bulk/marketing mail (List-Unsubscribe present),
-// which is excluded before ever reaching the model; see CLAUDE.md's "what
-// reaches the model" rule. Dedupes on Gmail's own message id, the email's
+// Google account. Every email reaches Gemini — its own extraction judgment
+// (instructed to return nothing for non-actionable content, including pure
+// marketing) decides relevance, not a sender allowlist or a header-based
+// pre-filter. Previously, mail with a List-Unsubscribe header (bulk/
+// marketing signal) was excluded before ever reaching the model — dropped
+// for real invitation services too (Evite etc. send that header on every
+// email, same as any mass sender), and the fix at the time was adding
+// those senders to WATCH_SENDERS one at a time. That's the wrong shape:
+// the model should be doing this judgment call, not a hand-maintained
+// list. isBulkMail is still computed and passed to the extraction prompt
+// as a signal, not a gate. Dedupes on Gmail's own message id, the email's
 // RFC822 Message-ID, and a sender+subject+time-window fallback (shared
 // across mailboxes, so the same email sent to both parents separately
 // doesn't get processed twice).
 export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
-  const watchSenders = getWatchSenders();
   const kidsConfig = getKidsConfig();
   const db = supabaseAdmin();
   // Interim single-household lookup — see lib/household.ts's
@@ -45,7 +48,6 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
   const result: GmailIngestResult = {
     emailsSeen: 0,
     emailsSkippedAlreadyProcessed: 0,
-    emailsSkippedNotRelevant: 0,
     emailsProcessed: 0,
     emailsFailed: 0,
     itemsCreated: 0,
@@ -72,17 +74,6 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
   const newAttentionTitles: string[] = [];
 
   for (const email of emails) {
-    const watched = senderIsWatched(email.sender, watchSenders);
-    // Watched senders are always processed, even if they happen to trip
-    // the bulk-mail signal (some school systems include unsubscribe links
-    // on legitimate notices). Everyone else is excluded only if it's bulk
-    // mail — no keyword gate; Gemini's own extraction judgment decides
-    // relevance for the rest.
-    if (!watched && email.isBulkMail) {
-      result.emailsSkippedNotRelevant++;
-      continue;
-    }
-
     const { data: existingByGmailId } = await db
       .from("gmail_messages")
       .select("gmail_message_id")

@@ -32,7 +32,7 @@ side project, cost-sensitive — free tiers everywhere possible.
   ("From Brightwheel email · Tuesday"). Never show an extracted item without its source.
 
 ## Phase 1 scope (current — build ONLY this)
-1. Gmail OAuth (readonly) + fetch recent emails from watched senders only
+1. Gmail OAuth (readonly) + fetch recent primary-inbox emails
 2. Gemini extraction -> structured items in Supabase (see feature spec for fields)
 3. ICS ingestion: subscribe to external ICS feeds (school district, activities,
    parents' work calendars via private ICS links) as the primary structured source
@@ -54,13 +54,17 @@ fridge-photo scanning, teen accounts, document upload. These are phases 2-3 in t
 feature spec. Do not build them yet, even partially.
 
 ## Hard rules
-- Gmail scanning (see 2026-07-08 decisions below): WATCH_SENDERS mail always
-  reaches Gemini. Everything else in the primary inbox also reaches Gemini —
-  its own extraction judgment (already instructed to return nothing for
-  non-actionable content) decides relevance, not a keyword list — except
-  bulk/marketing mail (List-Unsubscribe header present), which is excluded
-  before ever reaching the model. That exclusion is the one gate that must
-  never be bypassed; everything else is intentionally sent to Gemini.
+- Gmail scanning (see 2026-07-08 and 2026-07-20 decisions below): every
+  email in the primary inbox reaches Gemini. Its own extraction judgment
+  (instructed to return nothing for non-actionable content, including pure
+  marketing) decides relevance — no sender allowlist, no keyword list, no
+  header-based pre-filter that excludes mail before the model sees it.
+  A List-Unsubscribe header is passed to the model as one signal, not a
+  gate (real invitation/mailing-list senders carry it same as marketing
+  does). Do not reintroduce a pre-Gemini exclusion rule or a
+  hand-maintained sender list to work around a relevance miss — fix the
+  extraction prompt instead; this was explicitly rejected twice now
+  (WATCH_SENDERS retired 2026-07-20 for exactly this reason).
 - Never store raw email bodies in the database. Store extracted structured data +
   message ID + subject + sender only.
 - Dedupe on Gmail message ID, the email's RFC822 Message-ID, and a
@@ -75,8 +79,6 @@ feature spec. Do not build them yet, even partially.
   irrelevant emails before calling the model.
 
 ## Environment
-- WATCH_SENDERS: comma-separated sender domains (brightwheel.com, ipsd.org, etc.) —
-  mail from these always goes to Gemini even if it looks like bulk mail
 - KIDS: name:context pairs to help the model attribute items to the right child
 - PARENTS: comma-separated parent names for task assignment (e.g. "Lav,Harsha")
 - google_accounts (DB table, not env): one row per connected Gmail account —
@@ -353,7 +355,16 @@ feature spec. Do not build them yet, even partially.
   (the one pre-Gemini filter that's supposed to only catch marketing
   spam) was silently dropping them before Gemini ever got a chance to
   judge relevance — confirmed via gmail_messages having zero record of
-  any evite.com sender ever, even as "skipped." Fixed the same way
-  school senders already bypass that gate: added evite.com to
-  WATCH_SENDERS (must also be updated in Vercel's env vars, not just
-  .env.local, to take effect in production).
+  any evite.com sender ever, even as "skipped." First fix attempt added
+  evite.com to WATCH_SENDERS — the user immediately rejected that
+  ("I don't want to keep adding websites or emails to watch senders...
+  I want to use Gemini intelligence"), correctly pointing out it was the
+  same hardcoded-list mistake in a new spot, not an actual fix. Reversed
+  within the hour: removed the bulk-mail pre-Gemini gate entirely (and
+  WATCH_SENDERS along with it — nothing else depended on it once the
+  gate was gone, so kept it around would've been a dead, misleading
+  env var). Every email now reaches Gemini; List-Unsubscribe is passed
+  into the extraction prompt as one signal to weigh, not a filter that
+  excludes before the model ever sees the content. See the Hard rules
+  section above, which now explicitly forbids reintroducing this kind
+  of pre-Gemini exclusion list.
