@@ -393,3 +393,10 @@ feature spec. Do not build them yet, even partially.
   day_before_alert_sent_at / hour_before_alert_sent_at (lib/event-
   alerts.ts now loops a small rule list instead of one hardcoded
   window), so only one SQL migration is needed, not two.
+- 2026-07-20 (later still): Fixed the "view email" mail icon opening the
+  wrong Gmail account — it hardcoded /mail/u/0/ (the browser's first
+  Google account), so a message from the other parent's connected
+  inbox would fail to open correctly. lib/today.ts now also maps
+  gmail_message_id -> account_email (gmail_messages already stores
+  this) and the link uses that account's email in place of the index,
+  which Gmail's URL accepts directly.
