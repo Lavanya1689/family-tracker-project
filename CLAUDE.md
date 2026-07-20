@@ -413,3 +413,25 @@ feature spec. Do not build them yet, even partially.
   Not yet wired up on the collapsed group-email header (only on
   individual item cards, including ones inside an expanded group) —
   natural follow-up if wanted.
+- 2026-07-20 (later still): The assistant started failing with a
+  generic "something went wrong" — root cause: Gemini's free tier also
+  caps gemini-2.5-flash at 20 requests/day total (separate from the
+  5/minute limit found earlier the same day), and hourly Gmail sync
+  plus repeated manual testing had already burned through it for the
+  day. Asked the user whether to enable billing (removes the cap
+  entirely, real cost is low) or scale back to stay on the free tier —
+  chose to scale back. Built a shared daily counter
+  (lib/gemini-budget.ts, app_settings.gemini_calls_today/
+  gemini_calls_date, reset at midnight Pacific to match when Google's
+  quota actually clears, not APP_TIMEZONE) that every Gemini caller
+  checks before calling. Gmail extraction voluntarily stops at 14/day
+  (INGEST_DAILY_CEILING in lib/ingest-gmail.ts) so the assistant —
+  interactive and user-initiated — always has headroom in the shared
+  20/day pool rather than losing a race to a background sync that can
+  just catch up later; the assistant now fails with a clear "hit
+  today's AI usage limit, resets overnight" message (a new
+  GeminiBudgetExhaustedError, caught explicitly in the API route)
+  instead of a generic 500. Also scaled the sync cron back from hourly
+  to 4x/day (.github/workflows/gmail-sync-cron.yml, 0 0,6,12,18 * * *)
+  to spread ingestion's slice of the budget across the day instead of
+  front-loading it — the daily counter is the real backstop either way.

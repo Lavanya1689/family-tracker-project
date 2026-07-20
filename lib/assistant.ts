@@ -1,7 +1,18 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { supabaseAdmin } from "./supabase";
 import { formatDateInTz, formatTimeInTz } from "./timezone";
+import { tryReserveGeminiCall } from "./gemini-budget";
 import type { Item, Kid } from "./types";
+
+// Distinguishable from other thrown errors so the API route can show a
+// clear, honest message instead of the generic "something went wrong" —
+// this is expected/recoverable (resets daily), not a real failure.
+export class GeminiBudgetExhaustedError extends Error {
+  constructor() {
+    super("Today's AI usage limit has been reached.");
+    this.name = "GeminiBudgetExhaustedError";
+  }
+}
 
 let client: GoogleGenerativeAI | null = null;
 function getClient() {
@@ -69,9 +80,16 @@ instead — never claim to have done something you can't actually do.
 If the data doesn't answer the question, say that plainly rather than
 guessing or inventing details.`;
 
-export async function askAssistant(messages: ChatMessage[]): Promise<string> {
+export async function askAssistant(messages: ChatMessage[], householdId: string): Promise<string> {
   if (messages.length === 0 || messages[messages.length - 1].role !== "user") {
     throw new Error("Expected the last message to be from the user");
+  }
+
+  // Full daily ceiling, not ingestion's reduced slice — the assistant is
+  // interactive and user-initiated, so it gets first claim on whatever's
+  // left in the shared budget (see lib/gemini-budget.ts).
+  if (!(await tryReserveGeminiCall(householdId, 20))) {
+    throw new GeminiBudgetExhaustedError();
   }
 
   const context = await buildContext();

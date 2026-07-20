@@ -7,6 +7,7 @@ import { localToUtcIso } from "./timezone";
 import { sendPushToAll } from "./push";
 import { getGeminiCustomInstructions, markLastRun } from "./settings";
 import { getSoleHouseholdId } from "./household";
+import { tryReserveGeminiCall } from "./gemini-budget";
 
 // Gemini is instructed to return naive local wall-clock strings (no
 // timezone suffix) — convert them to the correct UTC instant for the
@@ -24,17 +25,20 @@ export interface GmailIngestResult {
   itemsCreated: number;
 }
 
-// Gemini's free tier caps gemini-2.5-flash at 5 requests/minute — hit for
-// real once every email started reaching the model instead of ~5% of them
-// (most of a run's 429s were legitimate mail losing a race against
-// marketing for the same 5-per-minute budget, not just spam failing).
-// Vercel's function timeout (60s on Hobby) also rules out just slowing
-// down to stay under the limit across a big backlog in one run. Capping
-// calls per run and leaving the rest for the next (roughly-hourly) run is
-// the only fix that doesn't require either a batched-prompt rewrite or
-// enabling billing on the Gemini project — undone messages aren't marked
-// processed, so they're retried automatically, not lost.
+// Two separate Gemini free-tier limits, both hit for real once every
+// email started reaching the model instead of ~5% of them:
+// - 5 requests/minute — a per-run cap bounds how many calls one run can
+//   burst out; Vercel's 60s function timeout also rules out just slowing
+//   down to clear a big backlog in one run.
+// - 20 requests/day total, shared with the assistant (lib/gemini-budget.ts)
+//   — ingestion voluntarily stops short of the full daily cap so the
+//   assistant, which is interactive and user-initiated, isn't starved by
+//   a background sync that can just catch up later.
+// Either limit hitting just defers the email — it isn't marked processed,
+// so it's retried (with a real extraction attempt) on a later run instead
+// of being lost or silently treated as irrelevant.
 const MAX_EXTRACTIONS_PER_RUN = 4;
+const INGEST_DAILY_CEILING = 14;
 
 // Fetches the last `days` days of primary-inbox mail across every connected
 // Google account. Every email reaches Gemini — its own extraction judgment
@@ -139,10 +143,15 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
       if (looksSkippable(emailWithBody)) {
         extracted = [];
       } else if (extractionsUsed >= MAX_EXTRACTIONS_PER_RUN) {
-        // Over this run's Gemini quota budget — leave the message unmarked
-        // (no gmail_messages insert below) so it's retried, including a
-        // real extraction attempt, on the next run instead of silently
-        // being treated as "nothing here."
+        // Over this run's per-minute-safety cap — leave the message
+        // unmarked (no gmail_messages insert below) so it's retried,
+        // including a real extraction attempt, on the next run instead of
+        // silently being treated as "nothing here."
+        result.emailsDeferred++;
+        continue;
+      } else if (!(await tryReserveGeminiCall(householdId, INGEST_DAILY_CEILING))) {
+        // Over today's shared daily budget (or ingestion's voluntary slice
+        // of it) — same deferral, retried once the daily counter resets.
         result.emailsDeferred++;
         continue;
       } else {

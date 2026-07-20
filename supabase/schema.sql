@@ -199,6 +199,13 @@ create index if not exists items_household_idx on items (household_id);
 alter table items add column if not exists day_before_alert_sent_at timestamptz;
 alter table items add column if not exists hour_before_alert_sent_at timestamptz;
 
+-- Shared daily counter for Gemini API calls, across both Gmail extraction
+-- and the assistant — Gemini's free tier caps gemini-2.5-flash at 20
+-- requests/day total, hit for real on 2026-07-20 once every email started
+-- reaching the model. See lib/gemini-budget.ts.
+alter table app_settings add column if not exists gemini_calls_today integer not null default 0;
+alter table app_settings add column if not exists gemini_calls_date text;
+
 -- ---------------------------------------------------------------------------
 -- push_subscriptions: browser Push API subscriptions for PWA notifications.
 -- One household, but multiple devices (each parent's phone) can subscribe.

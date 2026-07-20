@@ -3,22 +3,29 @@ name: Gmail/ICS sync cron
 # Vercel's Hobby plan only allows daily cron (vercel.json still runs
 # /api/cron/sync once a day as a baseline). An email arriving right after
 # that one daily run used to sit unprocessed for up to 24h — this repo's
-# own free GitHub Actions cron hits the same endpoint hourly instead, same
-# pattern as reminders-cron.yml. Safe to run both/overlap: ingestGmail and
-# ingestIcsFeeds dedupe on message id / uid, so a redundant call is a no-op,
-# not a duplicate.
+# own free GitHub Actions cron hits the same endpoint a few more times a
+# day instead, same pattern as reminders-cron.yml. Safe to run both/
+# overlap: ingestGmail and ingestIcsFeeds dedupe on message id / uid, so a
+# redundant call is a no-op, not a duplicate.
+#
+# Originally hourly; scaled back to 4x/day (2026-07-20) after hourly runs
+# combined with the assistant blew through Gemini's 20-requests/day free
+# tier in a single day. lib/gemini-budget.ts's shared daily counter is the
+# real backstop now — this schedule mainly exists to spread ingestion's
+# slice of that budget across the day instead of front-loading it into
+# one run.
 #
 # Reuses the same two repo secrets reminders-cron.yml already needs
 # (Settings -> Secrets and variables -> Actions):
 #   NESTLY_URL    the deployed app's base URL, e.g. https://nestly.vercel.app
 #   CRON_SECRET   same value as the CRON_SECRET env var set in Vercel
 #
-# Note: GitHub's `schedule` trigger is best-effort and can be delayed by an
-# hour or more on low-traffic repos (confirmed on this repo's reminders
-# cron) — "hourly" here means "roughly hourly," not a hard guarantee.
+# Note: GitHub's `schedule` trigger is best-effort and can be delayed on
+# low-traffic repos (confirmed on this repo's reminders cron) — this is
+# "roughly 4x/day," not a hard guarantee.
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 0,6,12,18 * * *"
   workflow_dispatch: {}
 
 jobs:
