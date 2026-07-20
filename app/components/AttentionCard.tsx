@@ -39,6 +39,7 @@ export function AttentionCard({
   comments = [],
   currentUserEmail = "",
   memberEmails = [],
+  accountEmail,
 }: {
   item: Item;
   kid: Pick<Kid, "name" | "color_key"> | null;
@@ -50,6 +51,10 @@ export function AttentionCard({
   comments?: ItemComment[];
   currentUserEmail?: string;
   memberEmails?: string[];
+  // Which connected Gmail account this item's source email lives in —
+  // Nestly is multi-account, so "view email" needs to open the right one
+  // instead of assuming the browser's default (mail/u/0/).
+  accountEmail?: string;
 }) {
   return (
     <div className={`attn${isHero ? " hero" : ""}`}>
@@ -89,7 +94,7 @@ export function AttentionCard({
           {item.source_type === "gmail" && item.gmail_message_id && (
             <a
               className="btn btn-icon btn-info"
-              href={`https://mail.google.com/mail/u/0/#all/${item.gmail_message_id}`}
+              href={`https://mail.google.com/mail/u/${encodeURIComponent(accountEmail || "0")}/#all/${item.gmail_message_id}`}
               target="_blank"
               rel="noopener noreferrer"
               title="View email"

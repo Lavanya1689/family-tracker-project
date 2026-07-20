@@ -8,6 +8,11 @@ export interface TodayData {
   attentionEntries: AttentionEntry[];
   todayEvents: Item[];
   emailsReadRecently: number;
+  // Which connected Gmail account a message actually belongs to — Nestly
+  // is multi-account (each parent connects their own), and the "view
+  // email" link needs this to open in the right account instead of
+  // whichever one happens to be the browser's default.
+  accountEmailByMessageId: Map<string, string>;
 }
 
 export async function getTodayData(): Promise<TodayData> {
@@ -48,14 +53,19 @@ export async function getTodayData(): Promise<TodayData> {
   );
   const { data: messages } =
     messageIds.length > 0
-      ? await db.from("gmail_messages").select("gmail_message_id, subject").in("gmail_message_id", messageIds)
+      ? await db
+          .from("gmail_messages")
+          .select("gmail_message_id, subject, account_email")
+          .in("gmail_message_id", messageIds)
       : { data: [] };
   const subjectByMessageId = new Map((messages ?? []).map((m) => [m.gmail_message_id, m.subject]));
+  const accountEmailByMessageId = new Map((messages ?? []).map((m) => [m.gmail_message_id, m.account_email]));
 
   return {
     kids: (kids ?? []) as Kid[],
     attentionEntries: groupAttentionItems(attentionItems, subjectByMessageId),
     todayEvents: (todayEvents ?? []) as Item[],
     emailsReadRecently: emailsReadRecently ?? 0,
+    accountEmailByMessageId,
   };
 }

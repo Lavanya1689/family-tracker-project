@@ -61,7 +61,8 @@ export default async function TodayPage() {
   const householdId = await getCurrentHouseholdId();
   if (!householdId) redirect("/onboarding");
 
-  const { kids, attentionEntries, todayEvents, emailsReadRecently } = await getTodayData();
+  const { kids, attentionEntries, todayEvents, emailsReadRecently, accountEmailByMessageId } =
+    await getTodayData();
   const kidById = (id: string | null) => kids.find((k) => k.id === id) ?? null;
 
   const attentionItemIds = attentionEntries.flatMap((e) =>
@@ -123,6 +124,11 @@ export default async function TodayPage() {
                 comments={commentsByItem.get(entry.item.id) ?? []}
                 currentUserEmail={currentUserEmail}
                 memberEmails={memberEmails}
+                accountEmail={
+                  entry.item.gmail_message_id
+                    ? accountEmailByMessageId.get(entry.item.gmail_message_id)
+                    : undefined
+                }
               />
             ) : (
               <AttentionGroupCard
@@ -145,7 +151,9 @@ export default async function TodayPage() {
                       </form>
                       <a
                         className="btn btn-icon btn-info"
-                        href={`https://mail.google.com/mail/u/0/#all/${entry.group.messageId}`}
+                        href={`https://mail.google.com/mail/u/${encodeURIComponent(
+                          accountEmailByMessageId.get(entry.group.messageId) || "0"
+                        )}/#all/${entry.group.messageId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View email"
