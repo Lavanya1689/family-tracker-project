@@ -146,8 +146,13 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
         result.emailsDeferred++;
         continue;
       } else {
-        extracted = await extractItems(emailWithBody, kidsConfig, customInstructions);
+        // Counts the attempt, not the success — a failed call (e.g. a 429)
+        // still consumes this run's budget, otherwise a rate-limited burst
+        // never trips the cap and just keeps retrying into the same wall
+        // for the rest of the run (what actually happened the first time
+        // this shipped: 23 failures, 0 deferred, cap never engaged).
         extractionsUsed++;
+        extracted = await extractItems(emailWithBody, kidsConfig, customInstructions);
       }
 
       // gmail_messages must be inserted before items (items.gmail_message_id
