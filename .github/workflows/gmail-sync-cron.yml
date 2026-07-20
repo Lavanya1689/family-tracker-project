@@ -1,0 +1,32 @@
+name: Gmail/ICS sync cron
+
+# Vercel's Hobby plan only allows daily cron (vercel.json still runs
+# /api/cron/sync once a day as a baseline). An email arriving right after
+# that one daily run used to sit unprocessed for up to 24h — this repo's
+# own free GitHub Actions cron hits the same endpoint hourly instead, same
+# pattern as reminders-cron.yml. Safe to run both/overlap: ingestGmail and
+# ingestIcsFeeds dedupe on message id / uid, so a redundant call is a no-op,
+# not a duplicate.
+#
+# Reuses the same two repo secrets reminders-cron.yml already needs
+# (Settings -> Secrets and variables -> Actions):
+#   NESTLY_URL    the deployed app's base URL, e.g. https://nestly.vercel.app
+#   CRON_SECRET   same value as the CRON_SECRET env var set in Vercel
+#
+# Note: GitHub's `schedule` trigger is best-effort and can be delayed by an
+# hour or more on low-traffic repos (confirmed on this repo's reminders
+# cron) — "hourly" here means "roughly hourly," not a hard guarantee.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call sync endpoint
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.NESTLY_URL }}/api/cron/sync"

@@ -326,3 +326,15 @@ feature spec. Do not build them yet, even partially.
   recognized mention keeps the old broadcast behavior unchanged. Past
   comments render recognized @tokens highlighted (CommentPanel.tsx);
   unrecognized "@"s (e.g. a pasted email address) are left as plain text.
+- 2026-07-20: Gmail/ICS sync moved from daily-only to roughly-hourly, at
+  the user's explicit request after noticing a 2-day gap with nothing
+  surfacing. Root cause: Vercel Hobby's cron only allows daily schedules,
+  so vercel.json's `/api/cron/sync` trigger (0 12 * * *) was the only
+  thing calling it — anything arriving after that one daily run sat
+  unprocessed for up to 24h. Added .github/workflows/gmail-sync-cron.yml
+  (same free-GitHub-Actions pattern as reminders-cron.yml, hourly
+  schedule), left the Vercel daily cron in place as a baseline — both
+  hitting the same endpoint is safe since ingestGmail/ingestIcsFeeds
+  dedupe on message id/uid. Per the digest bug found 2026-07-16, GitHub's
+  `schedule` trigger is only best-effort on low-traffic repos and can lag
+  by an hour or more, so this is "roughly hourly," not exact.
