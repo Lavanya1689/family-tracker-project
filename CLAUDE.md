@@ -368,3 +368,28 @@ feature spec. Do not build them yet, even partially.
   excludes before the model ever sees the content. See the Hard rules
   section above, which now explicitly forbids reintroducing this kind
   of pre-Gemini exclusion list.
+- 2026-07-20 (later still): Removing the bulk-mail gate surfaced a real
+  constraint that the gate had been accidentally hiding: Gemini's free
+  tier caps gemini-2.5-flash at 5 requests/minute. With every email now
+  reaching the model instead of ~5% of them, a single sync run (50 email
+  candidates) threw 429 Too Many Requests for the large majority of
+  calls — including legitimate mail losing the race against marketing
+  for the same 5-per-minute budget, confirmed via a local run
+  (emailsProcessed: 6, emailsFailed: 30). Vercel Hobby's 60s function
+  timeout rules out just slowing down to clear a big backlog in one run.
+  Fixed with a per-run cap (MAX_EXTRACTIONS_PER_RUN = 4 in
+  lib/ingest-gmail.ts) — capped emails aren't marked processed, so
+  they're retried (with a real extraction attempt) on the next
+  roughly-hourly run rather than lost or silently treated as
+  irrelevant. A proper batched-prompt rewrite (many emails per Gemini
+  call, cutting request count rather than just capping it) or enabling
+  billing on the Gemini project would both remove the cap entirely —
+  neither done here; flagged as the real follow-up if the 4/run ceiling
+  ever causes a backlog that doesn't clear.
+  Same session: extended the upcoming-event alert (added earlier the
+  same day) from one lead time to two, at the user's request — "a day
+  before and an hour before." Redesigned before the single-column
+  version was ever migrated: items.start_alert_sent_at replaced with
+  day_before_alert_sent_at / hour_before_alert_sent_at (lib/event-
+  alerts.ts now loops a small rule list instead of one hardcoded
+  window), so only one SQL migration is needed, not two.

@@ -20,8 +20,21 @@ export interface GmailIngestResult {
   emailsSkippedAlreadyProcessed: number;
   emailsProcessed: number;
   emailsFailed: number;
+  emailsDeferred: number;
   itemsCreated: number;
 }
+
+// Gemini's free tier caps gemini-2.5-flash at 5 requests/minute — hit for
+// real once every email started reaching the model instead of ~5% of them
+// (most of a run's 429s were legitimate mail losing a race against
+// marketing for the same 5-per-minute budget, not just spam failing).
+// Vercel's function timeout (60s on Hobby) also rules out just slowing
+// down to stay under the limit across a big backlog in one run. Capping
+// calls per run and leaving the rest for the next (roughly-hourly) run is
+// the only fix that doesn't require either a batched-prompt rewrite or
+// enabling billing on the Gemini project — undone messages aren't marked
+// processed, so they're retried automatically, not lost.
+const MAX_EXTRACTIONS_PER_RUN = 4;
 
 // Fetches the last `days` days of primary-inbox mail across every connected
 // Google account. Every email reaches Gemini — its own extraction judgment
@@ -50,6 +63,7 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
     emailsSkippedAlreadyProcessed: 0,
     emailsProcessed: 0,
     emailsFailed: 0,
+    emailsDeferred: 0,
     itemsCreated: 0,
   };
 
@@ -72,6 +86,7 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
   // their titles so we can push a single reminder notification once
   // ingestion finishes, instead of the parent having to notice on their own.
   const newAttentionTitles: string[] = [];
+  let extractionsUsed = 0;
 
   for (const email of emails) {
     const { data: existingByGmailId } = await db
@@ -120,9 +135,20 @@ export async function ingestGmail(days = 7): Promise<GmailIngestResult> {
       const { body, attachments } = await fetchEmailContent(email.refreshToken, email.gmailMessageId);
       const emailWithBody = { ...email, body, attachments };
 
-      const extracted = looksSkippable(emailWithBody)
-        ? []
-        : await extractItems(emailWithBody, kidsConfig, customInstructions);
+      let extracted: Awaited<ReturnType<typeof extractItems>>;
+      if (looksSkippable(emailWithBody)) {
+        extracted = [];
+      } else if (extractionsUsed >= MAX_EXTRACTIONS_PER_RUN) {
+        // Over this run's Gemini quota budget — leave the message unmarked
+        // (no gmail_messages insert below) so it's retried, including a
+        // real extraction attempt, on the next run instead of silently
+        // being treated as "nothing here."
+        result.emailsDeferred++;
+        continue;
+      } else {
+        extracted = await extractItems(emailWithBody, kidsConfig, customInstructions);
+        extractionsUsed++;
+      }
 
       // gmail_messages must be inserted before items (items.gmail_message_id
       // is a foreign key into it).
