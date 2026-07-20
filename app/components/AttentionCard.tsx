@@ -4,6 +4,7 @@ import { KidChip } from "./KidChip";
 import { CategoryIcon } from "@/lib/category-icon";
 import type { ItemComment } from "@/lib/comments";
 import { CommentPanel } from "./CommentPanel";
+import { EmailPreviewTrigger } from "./EmailPreviewTrigger";
 import { addToCalendar, ignoreItem, markDone } from "../actions";
 
 function SourceIcon({ sourceType }: { sourceType: Item["source_type"] }) {
@@ -56,8 +57,13 @@ export function AttentionCard({
   // instead of assuming the browser's default (mail/u/0/).
   accountEmail?: string;
 }) {
-  return (
-    <div className={`attn${isHero ? " hero" : ""}`}>
+  const gmailHref =
+    item.source_type === "gmail" && item.gmail_message_id
+      ? `https://mail.google.com/mail/u/${encodeURIComponent(accountEmail || "0")}/#all/${item.gmail_message_id}`
+      : null;
+
+  const head = (
+    <>
       <div className="attn-head">
         <div className="attn-title-row">
           <CategoryIcon category={item.category} />
@@ -66,6 +72,18 @@ export function AttentionCard({
         <span className="due">{formatDueLabel(item.due_at, item.kind)}</span>
       </div>
       {item.description && <p className="attn-body">{item.description}</p>}
+    </>
+  );
+
+  return (
+    <div className={`attn${isHero ? " hero" : ""}`}>
+      {gmailHref ? (
+        <EmailPreviewTrigger gmailMessageId={item.gmail_message_id!} fallbackHref={gmailHref}>
+          {head}
+        </EmailPreviewTrigger>
+      ) : (
+        head
+      )}
       <div className="tl-meta">
         <KidChip kid={kid} />
       </div>
@@ -91,10 +109,10 @@ export function AttentionCard({
               Add to calendar
             </button>
           </form>
-          {item.source_type === "gmail" && item.gmail_message_id && (
+          {gmailHref && (
             <a
               className="btn btn-icon btn-info"
-              href={`https://mail.google.com/mail/u/${encodeURIComponent(accountEmail || "0")}/#all/${item.gmail_message_id}`}
+              href={gmailHref}
               target="_blank"
               rel="noopener noreferrer"
               title="View email"

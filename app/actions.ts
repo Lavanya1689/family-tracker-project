@@ -10,6 +10,7 @@ import { createHousehold, createInvitation, getCurrentHouseholdId, getHouseholdM
 import { createKid, deleteKid } from "@/lib/kids";
 import { manualProvenance } from "@/lib/provenance";
 import { resolveMentions } from "@/lib/comment-format";
+import { fetchEmailContent } from "@/lib/google";
 
 // Moves an item from "needs attention" onto the calendar: status becomes
 // "scheduled" (same status ICS-sourced events already use), which both
@@ -503,4 +504,60 @@ export async function addManualItem(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/schedule");
+}
+
+export interface EmailPreview {
+  sender: string;
+  subject: string;
+  receivedAt: string;
+  body: string;
+  attachmentNames: string[];
+}
+
+// Fetches an email's real body live from Gmail for the "preview" panel on
+// a Needs Attention card, so reading the source doesn't require leaving
+// the app — never persisted anywhere, matching the hard rule against
+// storing raw email bodies in the database (only extracted structured
+// data + message id + subject + sender are ever written to gmail_messages).
+export async function getEmailPreview(
+  gmailMessageId: string
+): Promise<EmailPreview | { error: string }> {
+  const supabase = await supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "Not signed in." };
+
+  const db = supabaseAdmin();
+  const { data: message, error: messageError } = await db
+    .from("gmail_messages")
+    .select("account_email, sender, subject, received_at")
+    .eq("gmail_message_id", gmailMessageId)
+    .maybeSingle();
+  if (messageError) throw messageError;
+  if (!message) return { error: "Couldn't find this email." };
+
+  const { data: account, error: accountError } = await db
+    .from("google_accounts")
+    .select("refresh_token")
+    .eq("email", message.account_email)
+    .maybeSingle();
+  if (accountError) throw accountError;
+  if (!account) return { error: "The connected account this email came from is no longer available." };
+
+  try {
+    const { body, attachments } = await fetchEmailContent(account.refresh_token, gmailMessageId);
+    return {
+      sender: message.sender,
+      subject: message.subject,
+      receivedAt: message.received_at,
+      // A preview, not a full render — plenty for "what does this say,"
+      // and keeps the response small regardless of a long email thread.
+      body: body.slice(0, 20000),
+      attachmentNames: attachments.map((a) => a.filename),
+    };
+  } catch (err) {
+    console.error("Failed to fetch email preview:", err);
+    return { error: "Couldn't load the email right now — try again, or open it in Gmail." };
+  }
 }
